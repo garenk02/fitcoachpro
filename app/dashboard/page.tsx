@@ -8,6 +8,7 @@ import {
   ChevronRight,
   User
 } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -20,8 +21,14 @@ import {
   CardTitle
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { MobileNav } from "@/components/ui/mobile-nav"
 
 export default function DashboardPage() {
+  const { user, userId } = useAuth();
+
+  // Example of using the stored userId without querying Supabase
+  console.log("Current trainer ID:", userId);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Header */}
@@ -30,7 +37,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <Avatar className="bg-primary text-primary-foreground">
             <AvatarFallback>
-              <User className="h-5 w-5" />
+              {user?.email?.charAt(0).toUpperCase() || <User className="h-5 w-5" />}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -186,6 +193,9 @@ export default function DashboardPage() {
           </Card>
         </div>
       </main>
+
+      {/* Bottom Navigation */}
+      <MobileNav />
     </div>
   )
 }
