@@ -81,6 +81,26 @@ export default function SignUpPage() {
 
       // Check if user was created
       if (data?.user) {
+        try {
+          // Create a profile for the new user
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert([
+              {
+                id: data.user.id,
+                role: 'trainer'
+              }
+            ]);
+
+          if (profileError) {
+            console.error("Error creating trainer profile:", profileError);
+            // Continue with redirect even if profile creation fails
+            // The profile will be created on the clients page as a fallback
+          }
+        } catch (error) {
+          console.error("Error creating trainer profile:", error);
+        }
+
         // Redirect directly to dashboard without showing success message
         router.push("/dashboard");
         // Don't set isLoading to false to maintain loading state during redirect

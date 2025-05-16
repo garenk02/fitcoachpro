@@ -9,7 +9,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectOption } from "@/components/ui/select";
+import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -179,15 +179,25 @@ export default function Home() {
                   <div>
                     <label className="text-sm font-medium block mb-1.5">Select Dropdown</label>
                     <Select defaultValue="option1">
-                      <SelectOption value="option1">Option 1</SelectOption>
-                      <SelectOption value="option2">Option 2</SelectOption>
-                      <SelectOption value="option3">Option 3</SelectOption>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="option1">Option 1</SelectItem>
+                        <SelectItem value="option2">Option 2</SelectItem>
+                        <SelectItem value="option3">Option 3</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <label className="text-sm font-medium block mb-1.5">Disabled Select</label>
                     <Select disabled>
-                      <SelectOption value="disabled">Disabled select</SelectOption>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Disabled select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="disabled">Disabled select</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>

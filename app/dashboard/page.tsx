@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import {
   Calendar,
   Clock,
@@ -10,7 +11,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -24,13 +25,10 @@ import { Progress } from "@/components/ui/progress"
 import { MobileNav } from "@/components/ui/mobile-nav"
 
 export default function DashboardPage() {
-  const { user, userId } = useAuth();
-
-  // Example of using the stored userId without querying Supabase
-  console.log("Current trainer ID:", userId);
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
         <h1 className="text-lg font-bold font-heading">Dashboard</h1>
@@ -49,7 +47,7 @@ export default function DashboardPage() {
           {/* Today's Sessions Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Today's Sessions</CardTitle>
+              <CardTitle>Today&apos;s Sessions</CardTitle>
               <CardDescription>Your upcoming training sessions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -111,9 +109,11 @@ export default function DashboardPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" size="sm" className="ml-auto flex items-center gap-1">
-                View all sessions
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="ml-auto flex items-center gap-1" asChild>
+                <Link href="/dashboard/schedule">
+                  View all sessions
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardFooter>
           </Card>
@@ -126,13 +126,23 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2">
-                  <UserPlus className="h-6 w-6" />
-                  <span>Add Client</span>
+                <Button
+                  className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
+                  asChild
+                >
+                  <Link href="/dashboard/clients/new">
+                    <UserPlus className="h-6 w-6" />
+                    <span>Add Client</span>
+                  </Link>
                 </Button>
-                <Button className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2">
-                  <Calendar className="h-6 w-6" />
-                  <span>Schedule Session</span>
+                <Button
+                  className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
+                  asChild
+                >
+                  <Link href="/dashboard/schedule/new">
+                    <Calendar className="h-6 w-6" />
+                    <span>Schedule Session</span>
+                  </Link>
                 </Button>
               </div>
             </CardContent>
@@ -185,9 +195,11 @@ export default function DashboardPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" size="sm" className="ml-auto flex items-center gap-1">
-                View all progress
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="ml-auto flex items-center gap-1" asChild>
+                <Link href="/dashboard/clients">
+                  View all clients
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardFooter>
           </Card>

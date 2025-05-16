@@ -28,17 +28,17 @@ export function MobileNav({ className }: MobileNavProps) {
     },
     {
       name: "Clients",
-      href: "/clients",
+      href: "/dashboard/clients",
       icon: Users,
     },
     {
       name: "Schedule",
-      href: "/schedule",
+      href: "/dashboard/schedule",
       icon: Calendar,
     },
     {
       name: "Workouts",
-      href: "/workouts",
+      href: "/dashboard/workouts",
       icon: Dumbbell,
     },
     {
@@ -49,10 +49,14 @@ export function MobileNav({ className }: MobileNavProps) {
   ]
 
   return (
-    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 h-16", className)}>
+    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 h-20", className)}>
       <div className="flex h-full items-center justify-around">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          // For dashboard, only highlight when exact match
+          // For other items, highlight when path starts with the href
+          const isActive = item.href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`)
           return (
             <Link
               key={item.href}
@@ -64,7 +68,10 @@ export function MobileNav({ className }: MobileNavProps) {
                   : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
               )}
             >
-              <item.icon className="h-6 w-6" />
+              <div className="flex flex-col items-center">
+                <item.icon className="h-6 w-6" />
+                <span className="text-xs mt-1">{item.name}</span>
+              </div>
             </Link>
           )
         })}
