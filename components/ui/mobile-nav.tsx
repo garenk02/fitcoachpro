@@ -65,9 +65,6 @@ export function MobileNav({ className }: MobileNavProps) {
               )}
             >
               <item.icon className="h-6 w-6" />
-              {isActive && (
-                <span className="text-xs font-medium mt-1">{item.name}</span>
-              )}
             </Link>
           )
         })}
