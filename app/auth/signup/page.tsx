@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,43 +78,32 @@ export default function SignUpPage() {
 
       if (error) {
         setFormError(error.message);
+        setIsLoading(false);
         return;
       }
 
       // Check if user was created
       if (data?.user) {
-        try {
-          // Create a profile for the new user
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: data.user.id,
-                role: 'trainer'
-              }
-            ]);
-
-          if (profileError) {
-            console.error("Error creating trainer profile:", profileError);
-            // Continue with redirect even if profile creation fails
-            // The profile will be created on the clients page as a fallback
-          }
-        } catch (error) {
-          console.error("Error creating trainer profile:", error);
-        }
+        // Profile will be created automatically by the database trigger
+        console.log("User created successfully:", data.user.id);
 
         // Redirect directly to dashboard without showing success message
         router.push("/dashboard");
         // Don't set isLoading to false to maintain loading state during redirect
         return; // Exit early to maintain loading state
+      } else {
+        // This case happens with email confirmation required
+        toast.success("Account created", {
+          description: "Please check your email to confirm your account.",
+          duration: 5000,
+        });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Error during sign up:", error);
       setFormError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
     }
-
-    // Only set loading to false if there was an error or no user data
-    setIsLoading(false);
   }
 
   return (

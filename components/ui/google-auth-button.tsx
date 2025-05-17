@@ -25,6 +25,9 @@ export function GoogleAuthButton({ mode, className }: GoogleAuthButtonProps) {
             access_type: 'offline',
             prompt: 'consent',
           },
+          data: {
+            role: 'trainer', // Set user role as trainer for profile creation
+          },
         },
       });
 

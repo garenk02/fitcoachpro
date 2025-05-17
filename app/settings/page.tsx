@@ -152,7 +152,7 @@ export default function SettingsPage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="bg-secondary/90">Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleSignOut}
                     disabled={isSigningOut}

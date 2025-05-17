@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,8 +36,22 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Check for error parameter in URL (from callback)
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setFormError(errorParam);
+      // Show toast for error
+      toast.error("Authentication Error", {
+        description: errorParam,
+        duration: 5000,
+      });
+    }
+  }, [searchParams]);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,11 +76,15 @@ export default function LoginPage() {
 
       if (error) {
         setFormError(error.message);
+        setIsLoading(false);
         return;
       }
 
       // Redirect to dashboard on successful login
       if (data?.user) {
+        // Profile will be created automatically by the database trigger if it doesn't exist
+        console.log("User logged in successfully:", data.user.id);
+
         // Keep loading state until redirect completes
         router.push("/dashboard");
         // Don't set isLoading to false here to keep the loading state until redirect

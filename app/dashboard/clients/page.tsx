@@ -65,47 +65,8 @@ export default function ClientsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Ensure user has a profile with trainer role
-  useEffect(() => {
-    const ensureTrainerProfile = async () => {
-      if (!userId) return;
-
-      try {
-        // Check if profile exists
-        const { data: existingProfile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-          console.error("Error checking profile:", profileError);
-        }
-
-        // If profile doesn't exist, create it
-        if (!existingProfile) {
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: userId,
-                role: 'trainer'
-              }
-            ]);
-
-          if (insertError) {
-            console.error("Error creating trainer profile:", insertError);
-          } else {
-            console.log("Created trainer profile successfully");
-          }
-        }
-      } catch (error) {
-        console.error("Error ensuring trainer profile:", error);
-      }
-    };
-
-    ensureTrainerProfile();
-  }, [userId]);
+  // Profile is now created automatically by the database trigger
+  // No need to check or create profiles manually
 
   // Fetch clients from Supabase
   useEffect(() => {
@@ -221,7 +182,7 @@ export default function ClientsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="h-auto py-2 bg-accent hover:bg-accent/90" asChild>
+          <Button className="h-auto py-2 bg-accent" asChild>
             <Link href="/dashboard/clients/new" className="flex items-center gap-1">
               <UserPlus className="h-4 w-4" />
               Add Client
