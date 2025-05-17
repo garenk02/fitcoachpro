@@ -9,6 +9,7 @@ import {
   Edit,
   Trash2,
   UserPlus,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -165,14 +166,28 @@ export default function ClientsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <h1 className="text-lg font-bold font-heading">Manage Clients</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/dashboard">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back</span>
+            </Link>
+          </Button>
+          <h1 className="text-lg font-bold font-heading">Manage Clients</h1>
+        </div>
+        <Button size="sm" className="bg-accent" asChild>
+          <Link href="/dashboard/clients/new" className="flex items-center gap-1">
+            <UserPlus className="h-4 w-4 mr-1" />
+            Add Client
+          </Link>
+        </Button>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="relative w-full sm:w-auto">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
@@ -182,12 +197,6 @@ export default function ClientsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="h-auto py-2 bg-accent" asChild>
-            <Link href="/dashboard/clients/new" className="flex items-center gap-1">
-              <UserPlus className="h-4 w-4" />
-              Add Client
-            </Link>
-          </Button>
         </div>
 
         {/* Clients Table */}
@@ -219,7 +228,7 @@ export default function ClientsPage() {
                     <p className="text-muted-foreground">No clients found</p>
                     <Button
                       variant="default"
-                      className="mt-4"
+                      className="mt-4 bg-accent"
                       asChild
                     >
                       <Link href="/dashboard/clients/new" className="flex items-center gap-1">

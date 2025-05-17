@@ -23,7 +23,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "FitCoach PWA",
+  title: "FitCoachPro",
   description: "Personal trainer management application",
 };
 
