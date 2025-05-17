@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
-  const { user, userId } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);

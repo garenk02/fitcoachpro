@@ -334,15 +334,16 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
                 )}
               />
 
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-between w-full">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => router.push("/dashboard/clients")}
+                  className="float-left"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="float-right">
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

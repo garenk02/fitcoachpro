@@ -173,11 +173,11 @@ export default function ClientsPage() {
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
               placeholder="Search clients..."
-              className="pl-8 w-full sm:w-[300px]"
+              className="pl-9 w-full sm:w-[300px]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -197,7 +197,7 @@ export default function ClientsPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden md:table-cell">Phone</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead className="hidden md:table-cell">Age</TableHead>
                 <TableHead className="hidden md:table-cell">Gender</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -234,7 +234,7 @@ export default function ClientsPage() {
                   <TableRow key={client.id}>
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.email}</TableCell>
-                    <TableCell className="hidden md:table-cell">{client.phone || "-"}</TableCell>
+                    <TableCell>{client.phone || "-"}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.age || "-"}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.gender || "-"}</TableCell>
                     <TableCell className="text-right">
@@ -268,43 +268,52 @@ export default function ClientsPage() {
 
           {/* Pagination */}
           {!isLoading && filteredClients.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Showing {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
-                {Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t gap-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left w-full sm:w-auto">
+                <span className="hidden sm:inline">
+                  Showing {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
+                  {Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
+                </span>
+                <span className="sm:hidden">
+                  {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
+                </span>
                 {filteredClients.length} clients
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 justify-center w-full sm:w-auto">
                 <Button
-                  variant="default"
+                  variant="secondary"
                   size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="default"
+                  variant="secondary"
                   size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm mx-2">
-                  Page {currentPage} of {totalPages}
+                <span className="text-sm mx-2 min-w-[80px] text-center">
+                  {currentPage} / {totalPages}
                 </span>
                 <Button
-                  variant="default"
+                  variant="secondary"
                   size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="default"
+                  variant="secondary"
                   size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
                 >
