@@ -221,7 +221,7 @@ export default function ClientsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button asChild>
+          <Button className="h-auto py-2 bg-accent hover:bg-accent/90" asChild>
             <Link href="/dashboard/clients/new" className="flex items-center gap-1">
               <UserPlus className="h-4 w-4" />
               Add Client
@@ -365,7 +365,7 @@ export default function ClientsPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="default" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeleteClient}>

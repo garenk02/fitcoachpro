@@ -42,8 +42,13 @@ const storeUserId = (userId: string | null) => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userId, setUserId] = useState<string | null>(getStoredUserId());
+  const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Use useEffect to safely access localStorage after hydration
+  useEffect(() => {
+    setUserId(getStoredUserId());
+  }, []);
 
   useEffect(() => {
     // Get the current session

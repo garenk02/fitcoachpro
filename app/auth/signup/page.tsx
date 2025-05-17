@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { GoogleAuthButton } from "@/components/ui/google-auth-button";
 
 // Define form schema with validation
 const formSchema = z.object({
@@ -205,6 +206,20 @@ export default function SignUpPage() {
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300 dark:border-gray-600"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          {/* Client-side only component */}
+          <div className="mt-4">
+            <GoogleAuthButton mode="signup" />
+          </div>
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">

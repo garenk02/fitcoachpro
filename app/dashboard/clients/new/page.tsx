@@ -115,7 +115,7 @@ export default function NewClientPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-1 md:px-6 z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/clients">
@@ -277,7 +277,7 @@ export default function NewClientPage() {
             <div className="flex justify-end gap-4">
               <Button
                 type="button"
-                variant="default"
+                variant="secondary"
                 onClick={() => router.push("/dashboard/clients")}
               >
                 Cancel

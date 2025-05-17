@@ -85,23 +85,6 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
                 <div>
-                  <h4 className="font-medium">User ID</h4>
-                  <p className="text-sm text-muted-foreground font-mono">{userId || 'Not available'}</p>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                  <h4 className="font-medium">Email</h4>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                </div>
-                <Button variant="default" size="sm">
-                  Change
-                </Button>
-              </div>
-
-              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-                <div>
                   <h4 className="font-medium">Password</h4>
                   <p className="text-sm text-muted-foreground">••••••••</p>
                 </div>
