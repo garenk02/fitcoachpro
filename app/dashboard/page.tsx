@@ -7,7 +7,8 @@ import {
   Clock,
   UserPlus,
   ChevronRight,
-  User
+  User,
+  Dumbbell
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
@@ -125,7 +126,7 @@ export default function DashboardPage() {
               <CardDescription>Common tasks for trainers</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button
                   className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
                   asChild
@@ -142,6 +143,15 @@ export default function DashboardPage() {
                   <Link href="/dashboard/schedule/new">
                     <Calendar className="h-6 w-6" />
                     <span>Schedule Session</span>
+                  </Link>
+                </Button>
+                <Button
+                  className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
+                  asChild
+                >
+                  <Link href="/dashboard/exercises">
+                    <Dumbbell className="h-6 w-6" />
+                    <span>Exercise Library</span>
                   </Link>
                 </Button>
               </div>

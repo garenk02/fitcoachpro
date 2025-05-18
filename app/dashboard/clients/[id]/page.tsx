@@ -101,7 +101,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">
-            {isLoading ? "Client Details" : client?.name || "Client Details"}
+            Client Details
           </h1>
         </div>
         <Button variant="ghost" size="icon" asChild>

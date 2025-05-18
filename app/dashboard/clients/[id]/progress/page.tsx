@@ -379,7 +379,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">
-            {client ? `${client.name}'s Progress` : "Client Progress"}
+            Client Progress
           </h1>
         </div>
         <Button size="sm" className="bg-accent" onClick={() => setIsAddDialogOpen(true)}>
