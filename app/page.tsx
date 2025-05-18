@@ -72,7 +72,7 @@ export default function Home() {
               Manage Your Personal Training Business with Ease
             </h1>
             <p className="text-body text-muted-foreground mb-8 max-w-xl mx-auto">
-              The all-in-one platform for personal trainers to schedule sessions, track client progress, and grow their business.
+              The all-in-one platform for personal trainers to schedule sessions, track client progress, and grow your business.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link href="/auth/signup">
@@ -291,7 +291,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="w-full sm:w-auto">
-                  Signup Now
+                  Signup Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/auth/login">

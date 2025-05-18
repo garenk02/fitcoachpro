@@ -26,6 +26,7 @@
 .augment
 /database
 *.zip
+/scripts
 
 # debug
 npm-debug.log*
@@ -42,3 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PWA files
+**/public/workbox-*.js
+**/public/sw.js
+**/public/worker-*.js
+**/public/fallback-*.js
