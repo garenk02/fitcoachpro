@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { PWAInstallPromptWrapper } from "@/components/pwa-install-prompt-wrapper";
+import { Analytics } from "@vercel/analytics/next"
 
 // Load Inter font (Primary Font - Section 2.1)
 const inter = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             {children}
+            <Analytics />
             <Toaster />
             <PWAInstallPromptWrapper />
           </AuthProvider>
