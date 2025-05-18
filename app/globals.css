@@ -165,4 +165,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Add hand cursor to all clickable elements */
+  a,
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  label[for],
+  select,
+  summary,
+  .cursor-pointer {
+    cursor: pointer;
+  }
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -32,7 +33,7 @@ const formSchema = z.object({
     .email({ message: "Invalid email address" }),
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters" })
+    .min(6, { message: "Password must be at least 6 characters" })
     .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
     .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
     .regex(/[0-9]/, { message: "Password must contain at least one number" })
@@ -107,7 +108,17 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="mb-2 flex flex-col items-center">
+        <Image
+          src="/logo.png"
+          alt="FitCoachPro Logo"
+          width={80}
+          height={80}
+          className="mb-2"
+          priority
+        />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-h2 font-heading text-center">Create Trainer Account</CardTitle>
@@ -156,7 +167,7 @@ export default function SignUpPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Must be at least 8 characters with uppercase, lowercase, number, and special character.
+                      Must be at least 6 characters with uppercase, lowercase, number, and special character.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -202,7 +213,7 @@ export default function SignUpPage() {
               <span className="w-full border-t border-gray-300 dark:border-gray-600"></span>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
             </div>
           </div>
 

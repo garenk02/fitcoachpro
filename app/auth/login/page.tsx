@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -37,7 +38,22 @@ const formSchema = z.object({
 // Wrapper component that uses Suspense
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="mb-8 flex flex-col items-center">
+          <Image
+            src="/logo.png"
+            alt="FitCoachPro Logo"
+            width={80}
+            height={80}
+            className="mb-2"
+            priority
+          />
+          <h1 className="text-2xl font-bold font-heading text-center">FitCoachPro</h1>
+        </div>
+        <div className="text-center">Loading...</div>
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   );
@@ -92,9 +108,6 @@ function LoginForm() {
 
       // Redirect to dashboard on successful login
       if (data?.user) {
-        // Profile will be created automatically by the database trigger if it doesn't exist
-        console.log("User logged in successfully:", data.user.id);
-
         // Keep loading state until redirect completes
         router.push("/dashboard");
         // Don't set isLoading to false here to keep the loading state until redirect
@@ -110,10 +123,20 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="mb-2 flex flex-col items-center">
+        <Image
+          src="/logo.png"
+          alt="FitCoachPro Logo"
+          width={80}
+          height={80}
+          className="mb-2"
+          priority
+        />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-h2 font-heading text-center">Log In</CardTitle>
+          <CardTitle className="text-h2 font-heading text-center">Log In Trainer Account</CardTitle>
           <CardDescription className="text-center">
             Welcome back! Log in to your trainer account
           </CardDescription>
@@ -189,7 +212,7 @@ function LoginForm() {
               <span className="w-full border-t border-gray-300 dark:border-gray-600"></span>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
             </div>
           </div>
 

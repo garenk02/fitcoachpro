@@ -8,6 +8,26 @@ import { Button } from "@/components/ui/button"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  // After mounting, we have access to the theme
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    // Return a placeholder with the same dimensions during SSR
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        disabled
+      >
+        <span className="h-5 w-5" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    )
+  }
 
   return (
     <Button

@@ -1,5 +1,5 @@
 {
-  "name": "fitpro-pwa",
+  "name": "fitcoachpro",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -26,7 +26,6 @@
     "@radix-ui/react-select": "^2.2.4",
     "@radix-ui/react-slot": "^1.2.2",
     "@radix-ui/react-tabs": "^1.1.11",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-table": "^8.21.3",

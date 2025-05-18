@@ -23,8 +23,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "FitCoachPro",
-  description: "Personal trainer management application",
+  title: "FitCoachPro - The ultimate platform for personal trainers",
+  description: "The ultimate platform for personal trainers. Everything You Need to Manage Your Training Business",
 };
 
 export default function RootLayout({
