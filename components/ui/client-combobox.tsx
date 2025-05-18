@@ -63,7 +63,7 @@ export function ClientCombobox({
         >
           {value
             ? clients.find((client) => client.id === value)?.name || "Select a client"
-            : "Select a client *"}
+            : "Select a client" + (onAddClient ? " *" : "...")}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

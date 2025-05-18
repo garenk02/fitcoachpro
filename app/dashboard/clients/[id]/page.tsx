@@ -129,7 +129,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="space-y-6">
             {/* Client Header Card */}
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-2">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 bg-primary text-primary-foreground">
                     <AvatarFallback className="text-xl">
@@ -139,7 +139,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   <div>
                     <h2 className="text-xl font-bold">{client.name}</h2>
                     <p className="text-sm text-muted-foreground">{client.email}</p>
-                    <p className="text-sm text-muted-foreground">{client.phone || "No phone"}</p>
+                    <p className="text-sm text-muted-foreground">{client.phone || "-"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -161,22 +161,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Age</p>
-                        <p>{client.age || "Not specified"}</p>
+                        <p>{client.age || "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Gender</p>
-                        <p>{client.gender || "Not specified"}</p>
+                        <p>{client.gender || "-"}</p>
                       </div>
                     </div>
 
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Goals</p>
-                      <p className="whitespace-pre-wrap">{client.goals || "No goals specified"}</p>
+                      <p className="whitespace-pre-wrap">{client.goals || "-"}</p>
                     </div>
 
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Medical Conditions</p>
-                      <p className="whitespace-pre-wrap">{client.medical_conditions || "None specified"}</p>
+                      <p className="whitespace-pre-wrap">{client.medical_conditions || "-"}</p>
                     </div>
                   </CardContent>
                 </Card>
