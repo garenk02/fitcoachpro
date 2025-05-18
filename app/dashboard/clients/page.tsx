@@ -240,8 +240,12 @@ export default function ClientsPage() {
                 </TableRow>
               ) : (
                 getPaginatedClients().map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableRow key={client.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => router.push(`/dashboard/clients/${client.id}`)}>
+                    <TableCell className="font-medium">
+                      <Link href={`/dashboard/clients/${client.id}`} className="hover:underline">
+                        {client.name}
+                      </Link>
+                    </TableCell>
                     <TableCell className="hidden md:table-cell">{client.email}</TableCell>
                     <TableCell>{client.phone || "-"}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.age || "-"}</TableCell>
@@ -251,7 +255,10 @@ export default function ClientsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/dashboard/clients/${client.id}/edit`)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            router.push(`/dashboard/clients/${client.id}/edit`);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
@@ -259,7 +266,8 @@ export default function ClientsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
                             setClientToDelete(client);
                             setIsDeleteDialogOpen(true);
                           }}

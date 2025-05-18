@@ -10,6 +10,7 @@ import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import interactionPlugin from "@fullcalendar/interaction"
+import listPlugin from "@fullcalendar/list"
 import { EventSourceInput, DateSelectArg, EventClickArg, EventDropArg } from "@fullcalendar/core"
 
 import { useAuth } from "@/components/auth-provider"
@@ -60,7 +61,27 @@ export default function SchedulePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [events, setEvents] = useState<ScheduleEvent[]>([])
+  const [isMobile, setIsMobile] = useState(false)
+  const [calendarView, setCalendarView] = useState('timeGridDay')
   const calendarRef = useRef<FullCalendar | null>(null)
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      // Set default view based on screen size
+      setCalendarView(window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek')
+    }
+
+    // Check on initial load
+    checkIfMobile()
+
+    // Add resize listener
+    window.addEventListener('resize', checkIfMobile)
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile)
+  }, [])
 
   // Fetch schedules from Supabase
   useEffect(() => {
@@ -188,6 +209,14 @@ export default function SchedulePage() {
     }
   }
 
+  // Handle view change
+  const handleViewChange = (view: string) => {
+    setCalendarView(view)
+    if (calendarRef.current) {
+      calendarRef.current.getApi().changeView(view)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
@@ -223,14 +252,50 @@ export default function SchedulePage() {
               </div>
             ) : (
               <div className="calendar-container">
+                <div className="md:hidden mb-4">
+                  <div className="flex justify-center gap-2 bg-muted p-2 rounded-md">
+                    <Button
+                      size="sm"
+                      variant={calendarView === 'timeGridDay' ? 'default' : 'secondary'}
+                      onClick={() => handleViewChange('timeGridDay')}
+                      className={calendarView === 'timeGridDay' ? 'shadow-md' : ''}
+                    >
+                      Day
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={calendarView === 'timeGridWeek' ? 'default' : 'secondary'}
+                      onClick={() => handleViewChange('timeGridWeek')}
+                      className={calendarView === 'timeGridWeek' ? 'shadow-md' : ''}
+                    >
+                      Week
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={calendarView === 'dayGridMonth' ? 'default' : 'secondary'}
+                      onClick={() => handleViewChange('dayGridMonth')}
+                      className={calendarView === 'dayGridMonth' ? 'shadow-md' : ''}
+                    >
+                      Month
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={calendarView === 'listWeek' ? 'default' : 'secondary'}
+                      onClick={() => handleViewChange('listWeek')}
+                      className={calendarView === 'listWeek' ? 'shadow-md' : ''}
+                    >
+                      List
+                    </Button>
+                  </div>
+                </div>
                 <FullCalendar
                   ref={calendarRef}
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                  initialView="timeGridWeek"
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+                  initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
                   headerToolbar={{
-                    left: 'prev,next today',
+                    left: isMobile ? 'prev,next' : 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    right: isMobile ? 'today' : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                   }}
                   events={events as EventSourceInput}
                   selectable={true}
@@ -243,12 +308,19 @@ export default function SchedulePage() {
                   editable={true}
                   droppable={true}
                   height="auto"
-                  aspectRatio={1.8}
+                  aspectRatio={isMobile ? 0.8 : 1.8}
                   expandRows={true}
                   stickyHeaderDates={true}
                   allDaySlot={false}
                   slotMinTime="06:00:00"
                   slotMaxTime="22:00:00"
+                  eventTimeFormat={{
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    meridiem: 'short'
+                  }}
+                  moreLinkText="+ more"
+                  navLinks={true}
                 />
               </div>
             )}

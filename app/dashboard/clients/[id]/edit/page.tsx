@@ -155,7 +155,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
       });
 
       // Redirect to clients list - don't set isSubmitting to false to maintain loading state
-      router.push("/dashboard/clients");
+      router.push(`/dashboard/clients/${clientId}`);
       // No setIsSubmitting(false) here to keep button in loading state during redirect
       return; // Exit early to maintain loading state
     } catch (error) {
@@ -171,7 +171,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-1 md:px-6 z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard/clients">
+            <Link href={`/dashboard/clients/${clientId}`}>
               <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
@@ -338,7 +338,7 @@ export default function EditClientPage({ params }: { params: Promise<{ id: strin
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => router.push("/dashboard/clients")}
+                  onClick={() => router.push(`/dashboard/clients/${clientId}`)}
                   className="float-left"
                 >
                   Cancel
