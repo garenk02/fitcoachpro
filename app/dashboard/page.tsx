@@ -10,9 +10,12 @@ import {
   User,
   Dumbbell,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  WifiOff
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { useOffline } from "@/components/offline-provider"
+import { OfflineStatus } from "@/components/offline-status"
 import { supabase } from "@/lib/supabase"
 import { format, parseISO, startOfDay, endOfDay } from "date-fns"
 
@@ -59,6 +62,7 @@ interface ProgressEntry {
 
 export default function DashboardPage() {
   const { user, userId } = useAuth()
+  const { isOnline } = useOffline()
   const [todaySessions, setTodaySessions] = useState<Session[]>([])
   const [recentProgress, setRecentProgress] = useState<ProgressEntry[]>([])
   const [isLoadingSessions, setIsLoadingSessions] = useState(true)
@@ -246,7 +250,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
         <h1 className="text-lg font-bold font-heading">Dashboard</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Avatar className="bg-primary text-primary-foreground">
             <AvatarFallback>
               {user?.email?.charAt(0).toUpperCase() || <User className="h-5 w-5" />}
@@ -254,6 +258,11 @@ export default function DashboardPage() {
           </Avatar>
         </div>
       </header>
+
+      {/* Offline Status Bar */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex justify-end">
+        <OfflineStatus />
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl">
@@ -272,8 +281,13 @@ export default function DashboardPage() {
                 </div>
               ) : sessionsError ? (
                 <div className="flex flex-col items-center justify-center py-8 text-destructive">
-                  <AlertCircle className="h-8 w-8" />
+                  {!isOnline ? <WifiOff className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
                   <p className="mt-2">{sessionsError}</p>
+                  {!isOnline && (
+                    <p className="mt-2 text-sm text-muted-foreground text-center">
+                      You are currently offline. Some data may not be available.
+                    </p>
+                  )}
                 </div>
               ) : todaySessions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">
@@ -388,8 +402,13 @@ export default function DashboardPage() {
                 </div>
               ) : progressError ? (
                 <div className="flex flex-col items-center justify-center py-8 text-destructive">
-                  <AlertCircle className="h-8 w-8" />
+                  {!isOnline ? <WifiOff className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
                   <p className="mt-2">{progressError}</p>
+                  {!isOnline && (
+                    <p className="mt-2 text-sm text-muted-foreground text-center">
+                      You are currently offline. Some data may not be available.
+                    </p>
+                  )}
                 </div>
               ) : recentProgress.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">

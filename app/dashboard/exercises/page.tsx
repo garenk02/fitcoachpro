@@ -9,6 +9,7 @@ import * as z from "zod"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { OfflineStatus } from "@/components/offline-status"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -363,6 +364,11 @@ export default function ExercisesPage() {
           Add Exercise
         </Button>
       </header>
+
+      {/* Offline Status Bar */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex justify-end">
+        <OfflineStatus />
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-6xl">

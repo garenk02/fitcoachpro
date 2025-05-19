@@ -13,10 +13,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  WifiOff
 } from "lucide-react";
-import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import { useOffline } from "@/components/offline-provider";
+import { OfflineStatus } from "@/components/offline-status";
+import { useOfflineData } from "@/hooks/use-offline-data";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -54,51 +56,34 @@ type Client = {
 };
 
 export default function ClientsPage() {
-  const { userId } = useAuth();
+  // We don't need userId here as it's used in the useOfflineData hook
+  const { isOnline } = useOffline();
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Profile is now created automatically by the database trigger
-  // No need to check or create profiles manually
+  // Use the offline data hook
+  const {
+    data: clients,
+    isLoading,
+    error,
+    deleteItem: deleteClient,
+  } = useOfflineData<Client>({
+    table: 'clients',
+    orderColumn: 'name',
+  });
 
-  // Fetch clients from Supabase
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+
+  // Update filtered clients when clients data changes
   useEffect(() => {
-    const fetchClients = async () => {
-      if (!userId) return;
-
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("trainer_id", userId)
-          .order("name");
-
-        if (error) {
-          console.error("Error fetching clients:", error);
-          return;
-        }
-
-        setClients(data || []);
-        setFilteredClients(data || []);
-        setTotalPages(Math.ceil((data?.length || 0) / itemsPerPage));
-      } catch (error) {
-        console.error("Error fetching clients:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClients();
-  }, [userId]);
+    setFilteredClients(clients);
+    setTotalPages(Math.ceil(clients.length / itemsPerPage));
+  }, [clients, itemsPerPage]);
 
   // Filter clients based on search query
   useEffect(() => {
@@ -116,35 +101,26 @@ export default function ClientsPage() {
       setTotalPages(Math.ceil(filtered.length / itemsPerPage));
     }
     setCurrentPage(1); // Reset to first page when filtering
-  }, [searchQuery, clients]);
+  }, [searchQuery, clients, itemsPerPage]);
 
   // Handle client deletion
   const handleDeleteClient = async () => {
     if (!clientToDelete) return;
 
     try {
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("id", clientToDelete.id);
+      const success = await deleteClient(clientToDelete.id);
 
-      if (error) {
-        console.error("Error deleting client:", error);
-        toast.error("Failed to delete client", {
-          description: error.message,
+      if (success) {
+        // Show success toast
+        toast.success("Client deleted", {
+          description: `${clientToDelete.name} has been removed from your client list.`,
         });
-        return;
+
+        setIsDeleteDialogOpen(false);
+        setClientToDelete(null);
+      } else {
+        toast.error("Failed to delete client");
       }
-
-      // Show success toast
-      toast.success("Client deleted", {
-        description: `${clientToDelete.name} has been removed from your client list.`,
-      });
-
-      // Update local state
-      setClients(clients.filter((client) => client.id !== clientToDelete.id));
-      setIsDeleteDialogOpen(false);
-      setClientToDelete(null);
     } catch (error) {
       console.error("Error deleting client:", error);
       toast.error("An unexpected error occurred");
@@ -183,6 +159,11 @@ export default function ClientsPage() {
         </Button>
       </header>
 
+      {/* Offline Status Bar */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex justify-end">
+        <OfflineStatus />
+      </div>
+
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Actions Bar */}
@@ -220,6 +201,21 @@ export default function ClientsPage() {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">Loading clients...</p>
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10">
+                    <div className="flex flex-col items-center justify-center">
+                      <WifiOff className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Error loading clients</p>
+                      <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                      {!isOnline && (
+                        <p className="text-sm text-muted-foreground mt-4">
+                          You are currently offline. Some data may not be available.
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : getPaginatedClients().length === 0 ? (

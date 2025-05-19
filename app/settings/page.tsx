@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
+import { OfflineStatus } from "@/components/offline-status";
 import { supabase } from "@/lib/supabase";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -50,7 +51,7 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
         <h1 className="text-lg font-bold font-heading">Settings</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Avatar className="bg-primary text-primary-foreground">
             <AvatarFallback>
               {user?.email?.charAt(0).toUpperCase() || <User className="h-5 w-5" />}
@@ -58,6 +59,11 @@ export default function SettingsPage() {
           </Avatar>
         </div>
       </header>
+
+      {/* Offline Status Bar */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex justify-end">
+        <OfflineStatus />
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-5xl">

@@ -3,9 +3,11 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { OfflineProvider } from "@/components/offline-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { PWAInstallPromptWrapper } from "@/components/pwa-install-prompt-wrapper";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { Analytics } from "@vercel/analytics/next"
 
 // Load Inter font (Primary Font - Section 2.1)
@@ -61,6 +63,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script src="/register-sw.js" defer></script>
+      </head>
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
@@ -75,10 +80,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
-            <Analytics />
-            <Toaster />
-            <PWAInstallPromptWrapper />
+            <OfflineProvider>
+              {children}
+              <Analytics />
+              <Toaster />
+              <PWAInstallPromptWrapper />
+              <ServiceWorkerRegistration />
+            </OfflineProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
