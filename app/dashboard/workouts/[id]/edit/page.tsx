@@ -417,7 +417,7 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
                                 value={exercise.sets || 0}
                                 onChange={(e) => {
                                   const updatedExercises = [...formExercises]
-                                  updatedExercises[index].sets = parseInt(e.target.value)
+                                  updatedExercises[index].sets = e.target.value === '' ? 0 : parseInt(e.target.value)
                                   form.setValue("exercises", updatedExercises)
                                 }}
                               />
@@ -429,7 +429,7 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
                                 value={exercise.reps || 0}
                                 onChange={(e) => {
                                   const updatedExercises = [...formExercises]
-                                  updatedExercises[index].reps = parseInt(e.target.value)
+                                  updatedExercises[index].reps = e.target.value === '' ? 0 : parseInt(e.target.value)
                                   form.setValue("exercises", updatedExercises)
                                 }}
                               />
@@ -441,7 +441,7 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
                                 value={exercise.duration || 0}
                                 onChange={(e) => {
                                   const updatedExercises = [...formExercises]
-                                  updatedExercises[index].duration = parseInt(e.target.value)
+                                  updatedExercises[index].duration = e.target.value === '' ? 0 : parseInt(e.target.value)
                                   form.setValue("exercises", updatedExercises)
                                 }}
                               />
@@ -453,7 +453,7 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
                                 value={exercise.rest || 0}
                                 onChange={(e) => {
                                   const updatedExercises = [...formExercises]
-                                  updatedExercises[index].rest = parseInt(e.target.value)
+                                  updatedExercises[index].rest = e.target.value === '' ? 0 : parseInt(e.target.value)
                                   form.setValue("exercises", updatedExercises)
                                 }}
                               />

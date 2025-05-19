@@ -597,7 +597,7 @@ export default function NewSchedulePage() {
                           min={1}
                           max={52}
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => field.onChange(e.target.value === '' ? 12 : parseInt(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
