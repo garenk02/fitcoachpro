@@ -2,7 +2,6 @@
 
 import { openDB, IDBPDatabase } from 'idb';
 import { supabase } from './supabase';
-import { toast } from 'sonner';
 import { DataChangeEvent } from '@/components/offline-provider';
 
 // Define database name and version
@@ -79,18 +78,90 @@ export const initDB = async (): Promise<IDBPDatabase> => {
 export const getAll = async (storeName: string, trainerId?: string): Promise<Record<string, unknown>[]> => {
   try {
     const db = await initDB();
+
+    // Verify the store exists
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`[IndexedDB] Store ${storeName} does not exist, initializing it`);
+      // The store should have been created in initDB, but just in case
+      return [];
+    }
+
     const tx = db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
 
+    let results: Record<string, unknown>[] = [];
+
     if (trainerId) {
-      const index = store.index('trainer_id');
-      return await index.getAll(trainerId);
+      try {
+        // Check if the index exists
+        if (store.indexNames.contains('trainer_id')) {
+          const index = store.index('trainer_id');
+          results = await index.getAll(trainerId);
+        } else {
+          console.warn(`[IndexedDB] trainer_id index not found for ${storeName}, falling back to filter`);
+          const allItems = await store.getAll();
+          results = allItems.filter((item: Record<string, unknown>) => item.trainer_id === trainerId);
+        }
+      } catch (indexError) {
+        console.error(`[IndexedDB] Error using trainer_id index for ${storeName}:`, indexError);
+        // Fallback to filtering all items if index lookup fails
+        const allItems = await store.getAll();
+        results = allItems.filter((item: Record<string, unknown>) => item.trainer_id === trainerId);
+      }
+    } else {
+      results = await store.getAll();
     }
 
-    return await store.getAll();
+    // Log data retrieval for debugging
+    // console.log(`[IndexedDB] Retrieved ${results.length} items from ${storeName}${trainerId ? ` for trainer ${trainerId}` : ''}`);
+
+    return results;
   } catch (error) {
-    console.error(`Error getting all items from ${storeName}:`, error);
+    console.error(`[IndexedDB] Error getting all items from ${storeName}:`, error);
     return [];
+  }
+};
+
+// Define the type for store data
+export type StoreData = {
+  count: number;
+  items: Record<string, unknown>[];
+  hasMore: boolean;
+};
+
+// Debug function to check what's in IndexedDB
+export const debugIndexedDB = async (): Promise<Record<string, StoreData>> => {
+  try {
+    const db = await initDB();
+    const result: Record<string, StoreData> = {};
+
+    // Get counts for all stores
+    for (const storeName of Object.values(TABLES)) {
+      if (storeName === TABLES.SYNC_QUEUE) continue; // Skip sync queue
+
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const count = await store.count();
+      const items = await store.getAll();
+
+      result[storeName] = {
+        count,
+        items: items.slice(0, 5), // Just show first 5 items to avoid huge logs
+        hasMore: items.length > 5
+      };
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error debugging IndexedDB:', error);
+    // Return an empty object with error info in case of error
+    return {
+      error: {
+        count: 0,
+        items: [{ error: String(error) }],
+        hasMore: false
+      }
+    } as unknown as Record<string, StoreData>;
   }
 };
 
@@ -115,32 +186,73 @@ export const saveItem = async (
   skipQueue = false
 ): Promise<string> => {
   try {
+    // Validate inputs
+    if (!storeName || !item) {
+      console.error(`[IndexedDB] Invalid parameters for saveItem: storeName=${storeName}, item=`, item);
+      throw new Error('Invalid parameters for saveItem');
+    }
+
+    // Make a deep copy to avoid reference issues
+    const itemToStore = JSON.parse(JSON.stringify(item));
+
+    // Generate a temporary ID if not provided (for new items)
+    if (!itemToStore.id && operation === 'INSERT') {
+      itemToStore.id = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+
+    // Ensure item has all required fields
+    if (!itemToStore.created_at) {
+      itemToStore.created_at = new Date().toISOString();
+    }
+
+    // Ensure trainer_id is present
+    if (!itemToStore.trainer_id) {
+      // Try to get the user ID from localStorage as a fallback
+      try {
+        const userId = localStorage.getItem('userId');
+        if (userId) {
+          // console.log(`[IndexedDB] Adding missing trainer_id (${userId}) to item for ${storeName}`);
+          itemToStore.trainer_id = userId;
+        } else {
+          console.warn(`[IndexedDB] Item for ${storeName} is missing trainer_id and no userId found in localStorage`);
+        }
+      } catch (error) {
+        console.warn(`[IndexedDB] Item for ${storeName} is missing trainer_id, this may cause retrieval issues:`, error);
+      }
+    }
+
     const db = await initDB();
+
+    // Verify the store exists
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.error(`[IndexedDB] Store ${storeName} does not exist`);
+      throw new Error(`Store ${storeName} does not exist`);
+    }
+
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
 
-    // Generate a temporary ID if not provided (for new items)
-    if (!item.id && operation === 'INSERT') {
-      item.id = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    }
+    // Store the item
+    await store.put(itemToStore);
 
-    await store.put(item);
+    // Log for debugging
+    // console.log(`[IndexedDB] Saved item to ${storeName}:`, { id: itemToStore.id, operation });
 
     // Add to sync queue if online operations should be performed later
     if (!skipQueue) {
       await addToSyncQueue({
-        id: `${storeName}_${String(item.id)}_${Date.now()}`,
+        id: `${storeName}_${String(itemToStore.id)}_${Date.now()}`,
         table: storeName,
         operation,
-        data: item,
+        data: itemToStore,
         timestamp: Date.now(),
         retries: 0
       });
     }
 
-    return String(item.id);
+    return String(itemToStore.id);
   } catch (error) {
-    console.error(`Error saving item to ${storeName}:`, error);
+    console.error(`[IndexedDB] Error saving item to ${storeName}:`, error);
     throw error;
   }
 };
@@ -230,11 +342,11 @@ export const processSyncQueue = async (): Promise<DataChangeEvent[]> => {
     }
 
     if (successCount > 0) {
-      toast.success(`Synced ${successCount} items with the server`);
+      console.log(`[IndexedDB] Synced ${successCount} items with the server`);
     }
 
     if (failCount > 0) {
-      toast.error(`Failed to sync ${failCount} items. Will retry later.`);
+      console.log(`[IndexedDB] Failed to sync ${failCount} items. Will retry later.`);
     }
 
     return successfulChanges;
@@ -349,5 +461,72 @@ export const updateLocalItemAfterSync = async (
     await store2.add(newData);
   } catch (error) {
     console.error(`Error updating local item after sync in ${storeName}:`, error);
+  }
+};
+
+// Preload all tables data for offline use
+export const preloadAllTablesData = async (userId: string): Promise<Record<string, number>> => {
+  if (!userId) {
+    console.error('[IndexedDB] Cannot preload data without userId');
+    return {};
+  }
+
+  const results: Record<string, number> = {};
+  const tables = Object.values(TABLES).filter(table => table !== TABLES.SYNC_QUEUE);
+
+  try {
+    console.log('[IndexedDB] Starting preload of all tables data for offline use');
+
+    for (const table of tables) {
+      try {
+        // Fetch data from Supabase
+        const { data, error } = await supabase
+          .from(table)
+          .select('*')
+          .eq('trainer_id', userId);
+
+        // Explicitly type the data
+        const typedData: Record<string, unknown>[] = data || [];
+
+        if (error) {
+          console.error(`[IndexedDB] Error fetching ${table} data for preload:`, error);
+          results[table] = -1; // Error indicator
+          continue;
+        }
+
+        if (typedData.length === 0) {
+          console.log(`[IndexedDB] No data found for ${table} during preload`);
+          results[table] = 0;
+          continue;
+        }
+
+        // Define a typed function to handle the mapping
+        const saveItemToIndexedDB = (item: Record<string, unknown>): Promise<string> => {
+          // Ensure trainer_id is set correctly before saving
+          if (!item.trainer_id) {
+            // console.log(`[IndexedDB] Adding missing trainer_id (${userId}) to item for ${table}`);
+            item.trainer_id = userId;
+          }
+          return saveItem(table, item, 'UPDATE', true);
+        };
+
+        // Store data in IndexedDB
+        await Promise.all(
+          typedData.map(saveItemToIndexedDB)
+        );
+
+        console.log(`[IndexedDB] Preloaded ${typedData.length} items for ${table}`);
+        results[table] = typedData.length;
+      } catch (tableError) {
+        console.error(`[IndexedDB] Error preloading ${table}:`, tableError);
+        results[table] = -1; // Error indicator
+      }
+    }
+
+    console.log('[IndexedDB] Completed preload of all tables data:', results);
+    return results;
+  } catch (error) {
+    console.error('[IndexedDB] Error during preload of all tables:', error);
+    return results;
   }
 };

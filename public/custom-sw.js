@@ -12,7 +12,21 @@ const CRITICAL_PAGES = [
   '/dashboard/schedule',
   '/dashboard/exercises',
   '/dashboard/workouts',
+  '/dashboard/clients/new',
+  '/dashboard/schedule/new',
+  '/dashboard/exercises/new',
+  '/dashboard/workouts/new',
+  '/dashboard/progress',
   '/settings'
+];
+
+// List of API routes to cache for offline use
+const API_ROUTES_TO_CACHE = [
+  '/api/clients',
+  '/api/schedules',
+  '/api/exercises',
+  '/api/workouts',
+  '/api/progress'
 ];
 
 // Wrap all code in try-catch to prevent service worker crashes
@@ -46,26 +60,53 @@ try {
     console.log('[Service Worker] Installing...');
 
     event.waitUntil(
-      caches.open(CACHE_NAMES.pages)
-        .then(cache => {
-          console.log('[Service Worker] Caching critical pages');
-          // Add offline page first to ensure it's available
-          return cache.add('/offline')
-            .then(() => {
-              // Then try to cache other critical pages
-              return Promise.allSettled(
-                CRITICAL_PAGES.map(url =>
-                  cache.add(url).catch(err =>
-                    console.warn(`[Service Worker] Failed to cache ${url}:`, err)
+      Promise.all([
+        // Cache pages
+        caches.open(CACHE_NAMES.pages)
+          .then(cache => {
+            console.log('[Service Worker] Caching critical pages');
+            // Add offline page first to ensure it's available
+            return cache.add('/offline')
+              .then(() => {
+                // Then try to cache other critical pages
+                return Promise.allSettled(
+                  CRITICAL_PAGES.map(url =>
+                    cache.add(url).catch(err =>
+                      console.warn(`[Service Worker] Failed to cache ${url}:`, err)
+                    )
                   )
-                )
-              );
-            })
-            .catch(err => {
-              console.error('[Service Worker] Failed to cache offline page:', err);
-              // Continue installation even if caching fails
-            });
-        })
+                );
+              })
+              .catch(err => {
+                console.error('[Service Worker] Failed to cache offline page:', err);
+                // Continue installation even if caching fails
+              });
+          }),
+
+        // Cache API routes
+        caches.open(CACHE_NAMES.api)
+          .then(cache => {
+            console.log('[Service Worker] Caching API routes');
+            return Promise.allSettled(
+              API_ROUTES_TO_CACHE.map(url =>
+                fetch(url)
+                  .then(response => {
+                    if (response.ok) {
+                      return cache.put(url, response);
+                    }
+                    throw new Error(`Failed to fetch ${url}`);
+                  })
+                  .catch(err => {
+                    console.warn(`[Service Worker] Failed to cache API route ${url}:`, err);
+                  })
+              )
+            );
+          })
+          .catch(err => {
+            console.error('[Service Worker] Failed to cache API routes:', err);
+            // Continue installation even if API caching fails
+          })
+      ])
     );
   });
 } catch (setupError) {
@@ -74,9 +115,10 @@ try {
 
 // Cache names
 const CACHE_NAMES = {
-  static: 'fitcoachpro-static-v2', // Increment version to clear old caches
-  dynamic: 'fitcoachpro-dynamic-v2',
-  pages: 'fitcoachpro-pages-v2'
+  static: 'fitcoachpro-static-v3', // Increment version to clear old caches
+  dynamic: 'fitcoachpro-dynamic-v3',
+  pages: 'fitcoachpro-pages-v3',
+  api: 'fitcoachpro-api-v3'
 };
 
 // Check if we're online
@@ -101,6 +143,32 @@ const checkOnlineStatus = () => {
 
 // Track last sync time to prevent infinite loops
 let lastSyncTime = 0;
+
+// Add an activate event to clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Activating...');
+
+  // Get all cache keys
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Check if this cache doesn't match any of our current cache names
+          if (
+            !Object.values(CACHE_NAMES).includes(cacheName) &&
+            cacheName.startsWith('fitcoachpro-')
+          ) {
+            console.log('[Service Worker] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('[Service Worker] Claiming clients...');
+      return self.clients.claim();
+    })
+  );
+});
 
 // Listen for the 'sync' event to handle background syncing
 self.addEventListener('sync', (event) => {
@@ -177,18 +245,30 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // Skip browser extensions and analytics
+    // Skip browser extensions, analytics, and Vercel scripts
     if (url.includes('chrome-extension') ||
         url.includes('firefox-extension') ||
         url.includes('analytics') ||
-        url.includes('sentry')) {
+        url.includes('sentry') ||
+        url.includes('vercel/insights') ||
+        url.includes('_vercel/')) {
+      // For Vercel scripts, return an empty response to prevent errors
+      if (url.includes('vercel/insights') || url.includes('_vercel/')) {
+        event.respondWith(
+          new Response('', {
+            status: 200,
+            headers: { 'Content-Type': 'application/javascript' }
+          })
+        );
+      }
       return;
     }
 
     // Handle problematic files specially to prevent precaching errors
     if (url.includes('app-build-manifest.json') ||
         url.includes('middleware-manifest.json') ||
-        url.includes('_error.js')) {
+        url.includes('_error.js') ||
+        url.includes('workbox-error-handler.js')) {
       event.respondWith(
         fetch(event.request)
           .catch(() => {
@@ -219,34 +299,63 @@ self.addEventListener('fetch', (event) => {
     // For API requests, use network first strategy
     if (isApiRequest) {
       event.respondWith(
-        fetch(event.request)
-          .then(response => {
-            try {
-              // Cache successful API responses for offline use
-              if (response.ok) {
+        (async () => {
+          try {
+            // Try network first
+            const response = await fetch(event.request);
+
+            // Cache successful API responses for offline use
+            if (response.ok) {
+              try {
                 const responseToCache = response.clone();
-                caches.open(CACHE_NAMES.dynamic)
-                  .then(cache => {
-                    cache.put(event.request, responseToCache);
-                  })
-                  .catch(err => console.warn('Error caching API response:', err));
+                const cache = await caches.open(CACHE_NAMES.api);
+                await cache.put(event.request, responseToCache);
+                console.log(`[Service Worker] Cached API response for: ${event.request.url}`);
+              } catch (cacheError) {
+                console.warn('Error caching API response:', cacheError);
               }
-            } catch (cacheError) {
-              console.warn('Error handling API response caching:', cacheError);
             }
+
             return response;
-          })
-          .catch(() => {
-            // If network fails, try to get from cache
-            return caches.match(event.request)
-              .catch(err => {
-                console.warn('Error getting API request from cache:', err);
-                return new Response('{"error":"Network error"}', {
-                  status: 503,
-                  headers: { 'Content-Type': 'application/json' }
-                });
+          } catch (networkError) {
+            console.log(`[Service Worker] Network request failed for API: ${event.request.url}, falling back to cache`);
+
+            try {
+              // If network fails, try to get from cache
+              const cachedResponse = await caches.match(event.request);
+              if (cachedResponse) {
+                console.log(`[Service Worker] Serving API request from cache: ${event.request.url}`);
+                return cachedResponse;
+              }
+
+              // Check if this is one of our predefined API routes
+              const url = new URL(event.request.url);
+              const pathname = url.pathname;
+
+              // Try to find a matching API route in our predefined list
+              const matchingApiRoute = API_ROUTES_TO_CACHE.find(route => pathname.startsWith(route));
+              if (matchingApiRoute) {
+                const fallbackResponse = await caches.match(matchingApiRoute);
+                if (fallbackResponse) {
+                  console.log(`[Service Worker] Serving API request from fallback cache: ${matchingApiRoute}`);
+                  return fallbackResponse;
+                }
+              }
+
+              // If no cache match, return an empty but valid JSON response
+              return new Response('{"data":[],"error":null}', {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
               });
-          })
+            } catch (cacheError) {
+              console.warn('Error getting API request from cache:', cacheError);
+              return new Response('{"error":"Network error"}', {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+              });
+            }
+          }
+        })()
       );
       return;
     }

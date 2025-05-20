@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -13,9 +13,10 @@ import interactionPlugin from "@fullcalendar/interaction"
 import listPlugin from "@fullcalendar/list"
 import { EventSourceInput, DateSelectArg, EventClickArg, EventDropArg } from "@fullcalendar/core"
 
-import { useAuth } from "@/components/auth-provider"
+import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
-import { supabase } from "@/lib/supabase"
+import { OfflineFallback } from "@/components/offline-fallback"
+import { useOfflineData } from "@/hooks/use-offline-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
@@ -39,7 +40,8 @@ interface ScheduleData {
 }
 
 // Define the schedule event type for FullCalendar
-interface ScheduleEvent {
+// This interface is used for type safety in the events array passed to FullCalendar
+type CalendarEvent = {
   id: string
   title: string
   start: string
@@ -58,13 +60,35 @@ interface ScheduleEvent {
 }
 
 export default function SchedulePage() {
-  const { userId } = useAuth()
+  // userId is used indirectly through useOfflineData hooks
+  const { isOnline } = useOffline()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [events, setEvents] = useState<ScheduleEvent[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [calendarView, setCalendarView] = useState('timeGridDay')
   const calendarRef = useRef<FullCalendar | null>(null)
+
+  // Use offline data hook for schedules
+  const {
+    data: schedules,
+    isLoading,
+    // Omit error from destructuring
+    updateItem: updateSchedule
+  } = useOfflineData<ScheduleData>({
+    table: 'schedules',
+    select: `
+      id,
+      client_id,
+      start_time,
+      end_time,
+      status,
+      place,
+      recurring,
+      series_id,
+      is_exception,
+      clients(name)
+    `,
+    orderColumn: 'start_time'
+  })
 
   // Detect mobile devices
   useEffect(() => {
@@ -84,84 +108,46 @@ export default function SchedulePage() {
     return () => window.removeEventListener('resize', checkIfMobile)
   }, [])
 
-  // Fetch schedules from Supabase
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      if (!userId) return
+  // Transform schedules data for FullCalendar
+  const events: CalendarEvent[] = useMemo(() => {
+    if (!schedules) return []
 
-      setIsLoading(true)
-      try {
-        // Fetch schedules with client names
-        const { data, error } = await supabase
-          .from('schedules')
-          .select(`
-            id,
-            client_id,
-            start_time,
-            end_time,
-            status,
-            place,
-            recurring,
-            series_id,
-            is_exception,
-            clients(name)
-          `)
-          .eq('trainer_id', userId)
-
-        if (error) {
-          console.error("Error fetching schedules:", error)
-          toast.error("Failed to load schedules")
-          return
-        }
-
-        // Transform data for FullCalendar
-        const formattedEvents = data.map((schedule: ScheduleData) => {
-          // Set color based on status
-          let backgroundColor = "#3b82f6" // blue for default
-          if (schedule.status === "completed") {
-            backgroundColor = "#10b981" // green
-          } else if (schedule.status === "cancelled") {
-            backgroundColor = "#ef4444" // red
-          } else if (schedule.status === "pending") {
-            backgroundColor = "#f59e0b" // amber
-          }
-
-          // Create a title with recurring indicator if needed
-          const clientName = schedule.clients?.name || "Unnamed Client"
-          const title = schedule.recurring
-            ? `${clientName} 🔄` // Add recurring emoji indicator
-            : clientName
-
-          return {
-            id: schedule.id,
-            title: title,
-            start: schedule.start_time,
-            end: schedule.end_time,
-            extendedProps: {
-              client_id: schedule.client_id,
-              client_name: schedule.clients?.name || "Unnamed Client",
-              status: schedule.status,
-              place: schedule.place,
-              recurring: schedule.recurring,
-              series_id: schedule.series_id,
-              is_exception: schedule.is_exception
-            },
-            backgroundColor,
-            borderColor: backgroundColor
-          }
-        })
-
-        setEvents(formattedEvents)
-      } catch (error) {
-        console.error("Error fetching schedules:", error)
-        toast.error("Failed to load schedules")
-      } finally {
-        setIsLoading(false)
+    return schedules.map((schedule: ScheduleData) => {
+      // Set color based on status
+      let backgroundColor = "#3b82f6" // blue for default
+      if (schedule.status === "completed") {
+        backgroundColor = "#10b981" // green
+      } else if (schedule.status === "cancelled") {
+        backgroundColor = "#ef4444" // red
+      } else if (schedule.status === "pending") {
+        backgroundColor = "#f59e0b" // amber
       }
-    }
 
-    fetchSchedules()
-  }, [userId])
+      // Create a title with recurring indicator if needed
+      const clientName = schedule.clients?.name || "Unnamed Client"
+      const title = schedule.recurring
+        ? `${clientName} 🔄` // Add recurring emoji indicator
+        : clientName
+
+      return {
+        id: schedule.id,
+        title: title,
+        start: schedule.start_time,
+        end: schedule.end_time,
+        extendedProps: {
+          client_id: schedule.client_id,
+          client_name: schedule.clients?.name || "Unnamed Client",
+          status: schedule.status,
+          place: schedule.place,
+          recurring: schedule.recurring,
+          series_id: schedule.series_id,
+          is_exception: schedule.is_exception
+        },
+        backgroundColor,
+        borderColor: backgroundColor
+      }
+    })
+  }, [schedules])
 
   // Handle event click
   const handleEventClick = (clickInfo: EventClickArg) => {
@@ -187,22 +173,17 @@ export default function SchedulePage() {
     }
 
     try {
-      const { error } = await supabase
-        .from('schedules')
-        .update({
-          start_time: newStart.toISOString(),
-          end_time: newEnd.toISOString()
-        })
-        .eq('id', eventId)
+      // Update schedule using the offline data hook
+      const success = await updateSchedule(eventId, {
+        start_time: newStart.toISOString(),
+        end_time: newEnd.toISOString()
+      })
 
-      if (error) {
-        console.error("Error updating schedule:", error)
-        toast.error("Failed to reschedule session")
-        dropInfo.revert()
-        return
+      if (!success) {
+        throw new Error("Failed to update schedule")
       }
 
-      toast.success("Session rescheduled successfully")
+      toast.success(`Session rescheduled successfully${!isOnline ? ' (will sync when online)' : ''}`)
     } catch (error) {
       console.error("Error updating schedule:", error)
       toast.error("Failed to reschedule session")
@@ -255,6 +236,14 @@ export default function SchedulePage() {
             {isLoading ? (
               <div className="flex justify-center items-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !isOnline && (!schedules || schedules.length === 0) ? (
+              <div className="py-4">
+                <OfflineFallback
+                  title="No offline schedule data"
+                  description="Your schedule data is not available offline."
+                  onRetry={() => window.location.reload()}
+                />
               </div>
             ) : (
               <div className="calendar-container">

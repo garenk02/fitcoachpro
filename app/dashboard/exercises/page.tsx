@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { Plus, Search, Edit, Trash2, ArrowLeft } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -9,8 +9,10 @@ import * as z from "zod"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
+import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
-import { supabase } from "@/lib/supabase"
+import { OfflineFallback } from "@/components/offline-fallback"
+import { useOfflineData } from "@/hooks/use-offline-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -89,9 +91,7 @@ const EXERCISE_CATEGORIES = [
 
 export default function ExercisesPage() {
   const { userId } = useAuth()
-  const [exercises, setExercises] = useState<Exercise[]>([])
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { isOnline } = useOffline()
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -100,6 +100,20 @@ export default function ExercisesPage() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Use offline data hook for exercises
+  const {
+    data: exercises,
+    isLoading,
+    // Omit error from destructuring
+    createItem: createExercise,
+    updateItem: updateExercise,
+    deleteItem: deleteExercise
+  } = useOfflineData<Exercise>({
+    table: 'exercises',
+    select: '*',
+    orderColumn: 'name'
+  })
 
   // Initialize add form
   const addForm = useForm<z.infer<typeof formSchema>>({
@@ -121,40 +135,10 @@ export default function ExercisesPage() {
     },
   })
 
-  // Fetch exercises
-  useEffect(() => {
-    const fetchExercises = async () => {
-      if (!userId) return
-
-      try {
-        const { data, error } = await supabase
-          .from("exercises")
-          .select("*")
-          .eq("trainer_id", userId)
-          .order("name")
-
-        if (error) {
-          console.error("Error fetching exercises:", error)
-          toast.error("Failed to load exercises")
-          setIsLoading(false)
-          return
-        }
-
-        setExercises(data || [])
-        setFilteredExercises(data || [])
-      } catch (error) {
-        console.error("Error fetching exercises:", error)
-        toast.error("Failed to load exercises")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchExercises()
-  }, [userId])
-
   // Filter exercises based on search query and category
-  useEffect(() => {
+  const filteredExercises = useMemo(() => {
+    if (!exercises) return []
+
     let filtered = [...exercises]
 
     // Apply search filter
@@ -174,8 +158,10 @@ export default function ExercisesPage() {
       )
     }
 
-    setFilteredExercises(filtered)
+    return filtered
   }, [exercises, searchQuery, categoryFilter])
+
+  // No need for the duplicate useEffect since we're using useMemo for filtering
 
   // Handle add form submission
   const handleAddSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -188,29 +174,21 @@ export default function ExercisesPage() {
     setError(null)
 
     try {
-      // Insert new exercise into Supabase
-      const { data, error } = await supabase.from("exercises").insert([
-        {
-          trainer_id: userId,
-          name: values.name,
-          description: values.description || null,
-          category: values.category,
-        },
-      ]).select()
+      // Create new exercise using the offline data hook
+      const newExerciseId = await createExercise({
+        trainer_id: userId,
+        name: values.name,
+        description: values.description || null,
+        category: values.category,
+      })
 
-      if (error) {
-        console.error("Error adding exercise:", error)
-        setError(error.message)
-        setIsSubmitting(false)
-        return
+      if (!newExerciseId) {
+        throw new Error("Failed to create exercise")
       }
-
-      // Add new exercise to state
-      setExercises([...exercises, data[0]])
 
       // Show success toast
       toast.success("Exercise added", {
-        description: `${values.name} has been added to your exercise library.`,
+        description: `${values.name} has been added to your exercise library.${!isOnline ? ' Will sync when online.' : ''}`,
         duration: 3000,
       })
 
@@ -236,35 +214,20 @@ export default function ExercisesPage() {
     setError(null)
 
     try {
-      // Update exercise in Supabase
-      const { data, error } = await supabase
-        .from("exercises")
-        .update({
-          name: values.name,
-          description: values.description || null,
-          category: values.category,
-        })
-        .eq("id", selectedExercise.id)
-        .eq("trainer_id", userId)
-        .select()
+      // Update exercise using the offline data hook
+      const success = await updateExercise(selectedExercise.id, {
+        name: values.name,
+        description: values.description || null,
+        category: values.category,
+      })
 
-      if (error) {
-        console.error("Error updating exercise:", error)
-        setError(error.message)
-        setIsSubmitting(false)
-        return
+      if (!success) {
+        throw new Error("Failed to update exercise")
       }
-
-      // Update exercise in state
-      setExercises(
-        exercises.map((exercise) =>
-          exercise.id === selectedExercise.id ? data[0] : exercise
-        )
-      )
 
       // Show success toast
       toast.success("Exercise updated", {
-        description: `${values.name} has been updated.`,
+        description: `${values.name} has been updated.${!isOnline ? ' Will sync when online.' : ''}`,
         duration: 3000,
       })
 
@@ -289,29 +252,16 @@ export default function ExercisesPage() {
     setIsSubmitting(true)
 
     try {
-      // Delete exercise from Supabase
-      const { error } = await supabase
-        .from("exercises")
-        .delete()
-        .eq("id", selectedExercise.id)
-        .eq("trainer_id", userId)
+      // Delete exercise using the offline data hook
+      const success = await deleteExercise(selectedExercise.id)
 
-      if (error) {
-        console.error("Error deleting exercise:", error)
-        toast.error("Failed to delete exercise")
-        setIsSubmitting(false)
-        setIsDeleteDialogOpen(false)
-        return
+      if (!success) {
+        throw new Error("Failed to delete exercise")
       }
-
-      // Remove exercise from state
-      setExercises(
-        exercises.filter((exercise) => exercise.id !== selectedExercise.id)
-      )
 
       // Show success toast
       toast.success("Exercise deleted", {
-        description: `${selectedExercise.name} has been removed from your exercise library.`,
+        description: `${selectedExercise.name} has been removed from your exercise library.${!isOnline ? ' Will sync when online.' : ''}`,
         duration: 3000,
       })
 
@@ -421,6 +371,16 @@ export default function ExercisesPage() {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">Loading exercises...</p>
+                  </TableCell>
+                </TableRow>
+              ) : !isOnline && (!exercises || exercises.length === 0) ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10">
+                    <OfflineFallback
+                      title="No offline exercise data"
+                      description="Your exercise library is not available offline."
+                      onRetry={() => window.location.reload()}
+                    />
                   </TableCell>
                 </TableRow>
               ) : filteredExercises.length === 0 ? (

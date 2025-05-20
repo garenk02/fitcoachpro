@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { useOffline, DataChangeEvent } from '@/components/offline-provider';
 import { supabase } from '@/lib/supabase';
@@ -24,6 +24,11 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
   const { user, userId } = useAuth();
   const { isOnline, notifyDataChange, subscribeToDataChanges } = useOffline();
 
+  // Debounce flags to prevent duplicate toasts
+  const toastDebounceRef = useRef({
+    lastOfflineToastTime: 0
+  });
+
   // Fetch data from Supabase or IndexedDB
   const fetchData = useCallback(async () => {
     if (!userId) {
@@ -35,6 +40,51 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
     setError(null);
 
     try {
+      // Always try to get data from IndexedDB first for faster initial load
+      const offlineData = await offlineStorage.getAll(table, userId);
+
+      // If we have offline data, set it immediately to avoid UI flicker
+      if (offlineData && offlineData.length > 0) {
+        console.log(`[useOfflineData] Using cached data for ${table} (${offlineData.length} items)`);
+
+        // Apply client-side filtering
+        let filteredData = offlineData;
+        if (filterColumn && filterValue !== undefined && filterValue !== null && filterColumn !== 'trainer_id') {
+          filteredData = offlineData.filter(item =>
+            (item as Record<string, unknown>)[filterColumn] === filterValue
+          );
+        }
+
+        // Apply client-side ordering
+        if (orderColumn) {
+          filteredData.sort((a, b) => {
+            const aValue = (a as Record<string, unknown>)[orderColumn];
+            const bValue = (b as Record<string, unknown>)[orderColumn];
+
+            if (aValue === undefined || bValue === undefined) return 0;
+
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+              return orderDirection === 'asc'
+                ? aValue.localeCompare(bValue)
+                : bValue.localeCompare(aValue);
+            }
+
+            // Handle numeric values
+            const aNum = Number(aValue);
+            const bNum = Number(bValue);
+
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+              return orderDirection === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+
+            return 0;
+          });
+        }
+
+        setData(filteredData as T[]);
+      }
+
+      // If online, fetch fresh data from Supabase
       if (isOnline) {
         // Fetch from Supabase when online
         let query = supabase.from(table).select(select || '*');
@@ -42,7 +92,7 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         // Apply filters
         if (filterColumn && filterValue !== undefined && filterValue !== null) {
           query = query.eq(filterColumn, filterValue);
-        } else if (filterColumn === 'trainer_id') {
+        } else if (filterColumn === 'trainer_id' || !filterColumn) {
           // Always filter by trainer_id if no specific filter is provided
           query = query.eq('trainer_id', userId);
         }
@@ -60,40 +110,42 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
 
         // Store fetched data in IndexedDB for offline use
         if (onlineData) {
-          for (const item of onlineData) {
-            await offlineStorage.saveItem(table, item, 'UPDATE', true);
+          console.log(`[useOfflineData] Storing ${onlineData.length} items from ${table} for offline use`);
+
+          // Always store data in IndexedDB, even if empty (to track that we've checked)
+          if (onlineData.length > 0) {
+            try {
+              // Use Promise.all for better performance
+              await Promise.all(
+                onlineData.map((item: Record<string, unknown>) =>
+                  offlineStorage.saveItem(table, item, 'UPDATE', true)
+                )
+              );
+              console.log(`[useOfflineData] Successfully stored ${onlineData.length} items from ${table} in IndexedDB`);
+            } catch (storageError) {
+              console.error(`[useOfflineData] Error storing ${table} data in IndexedDB:`, storageError);
+            }
+          } else {
+            // If we got empty data from server, log it
+            console.log(`[useOfflineData] No data returned from server for ${table}`);
           }
+
+          // Update state with online data
           setData(onlineData as T[]);
+        } else {
+          // If we got null/undefined from server and had no offline data
+          if (!offlineData || offlineData.length === 0) {
+            setData([]);
+          }
         }
       } else {
-        // Fetch from IndexedDB when offline
-        const offlineData = await offlineStorage.getAll(table, userId);
-
-        // Apply client-side filtering
-        let filteredData = offlineData;
-        if (filterColumn && filterValue !== undefined && filterValue !== null && filterColumn !== 'trainer_id') {
-          filteredData = offlineData.filter(item =>
-            (item as Record<string, unknown>)[filterColumn] === filterValue
-          );
+        // We're offline and already set data from IndexedDB above
+        // If we didn't have any offline data, show empty state
+        if (!offlineData || offlineData.length === 0) {
+          console.log(`[useOfflineData] No offline data available for ${table}`);
+          setData([]);
         }
-
-        // Apply client-side ordering
-        if (orderColumn) {
-          filteredData.sort((a, b) => {
-            const aValue = (a as Record<string, unknown>)[orderColumn];
-            const bValue = (b as Record<string, unknown>)[orderColumn];
-
-            // Convert to strings for safe comparison
-            const aString = String(aValue || '');
-            const bString = String(bValue || '');
-
-            if (aString < bString) return orderDirection === 'asc' ? -1 : 1;
-            if (aString > bString) return orderDirection === 'asc' ? 1 : -1;
-            return 0;
-          });
-        }
-
-        setData(filteredData as T[]);
+        // Data was already set above, no need to set it again
       }
     } catch (err) {
       console.error(`Error fetching ${table}:`, err);
@@ -173,11 +225,19 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
   // Create a new item
   const createItem = async (item: Partial<T>): Promise<string | null> => {
     try {
-      // Add trainer_id if not provided
+      // Always ensure trainer_id is set correctly
+      const itemRecord = item as Record<string, unknown>;
       const itemWithTrainerId = {
         ...item,
         trainer_id: userId,
-      };
+      } as Record<string, unknown>;
+
+      // Log for debugging
+      if (!itemRecord.trainer_id) {
+        console.log(`[useOfflineData] Adding trainer_id (${userId}) to new item for ${table}`);
+      } else if (itemRecord.trainer_id !== userId) {
+        console.log(`[useOfflineData] Correcting trainer_id from ${itemRecord.trainer_id} to ${userId} for ${table}`);
+      }
 
       if (isOnline) {
         // Insert directly to Supabase when online
@@ -212,15 +272,14 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         const newItem = { ...itemWithTrainerId, id: newId } as T;
         setData(prevData => [...prevData, newItem]);
 
-        toast.info('You are offline', {
-          description: 'This item will be synced when you reconnect.',
-        });
+        // Log offline status instead of showing toast
+        console.log(`[useOfflineData] Item created while offline. Will be synced when reconnected.`);
 
         return newId;
       }
     } catch (err) {
       console.error(`Error creating ${table}:`, err);
-      toast.error(`Failed to create ${table}`);
+      toast.error(`Failed to create ${table}`, { duration: 3000 });
       return null;
     }
 
@@ -230,11 +289,24 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
   // Update an existing item
   const updateItem = async (id: string, updates: Partial<T>): Promise<boolean> => {
     try {
+      // Ensure trainer_id is set correctly in updates
+      const updatesRecord = updates as Record<string, unknown>;
+      const updatesWithTrainerId = {
+        ...updates,
+        trainer_id: userId, // Always set trainer_id correctly
+      } as Record<string, unknown>;
+
+      // Log appropriate messages based on the original trainer_id value
+      if (!updatesRecord.trainer_id) {
+        console.log(`[useOfflineData] Adding trainer_id (${userId}) to update for ${table}`);
+      } else if (updatesRecord.trainer_id !== userId) {
+        console.log(`[useOfflineData] Correcting trainer_id from ${updatesRecord.trainer_id} to ${userId} for ${table}`);
+      }
       if (isOnline) {
         // Update directly in Supabase when online
         const { error } = await supabase
           .from(table)
-          .update(updates)
+          .update(updatesWithTrainerId)
           .eq('id', id);
 
         if (error) throw error;
@@ -242,14 +314,14 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         // Update local state
         setData(prevData =>
           prevData.map(item =>
-            (item as Record<string, unknown>).id === id ? { ...item, ...updates } : item
+            (item as Record<string, unknown>).id === id ? { ...item, ...updatesWithTrainerId } : item
           )
         );
 
         // Update in IndexedDB
         const existingItem = await offlineStorage.getById(table, id);
         if (existingItem) {
-          await offlineStorage.saveItem(table, { ...existingItem, ...updates }, 'UPDATE', true);
+          await offlineStorage.saveItem(table, { ...existingItem, ...updatesWithTrainerId }, 'UPDATE', true);
         }
 
         // Notify about data change
@@ -262,25 +334,24 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         // Update in IndexedDB and add to sync queue when offline
         const existingItem = await offlineStorage.getById(table, id);
         if (existingItem) {
-          await offlineStorage.saveItem(table, { ...existingItem, ...updates }, 'UPDATE');
+          await offlineStorage.saveItem(table, { ...existingItem, ...updatesWithTrainerId }, 'UPDATE');
 
           // Update local state
           setData(prevData =>
             prevData.map(item =>
-              (item as Record<string, unknown>).id === id ? { ...item, ...updates } : item
+              (item as Record<string, unknown>).id === id ? { ...item, ...updatesWithTrainerId } : item
             )
           );
 
-          toast.info('You are offline', {
-            description: 'This update will be synced when you reconnect.',
-          });
+          // Log offline status instead of showing toast
+          console.log(`[useOfflineData] Item updated while offline. Will be synced when reconnected.`);
         }
       }
 
       return true;
     } catch (err) {
       console.error(`Error updating ${table}:`, err);
-      toast.error(`Failed to update ${table}`);
+      toast.error(`Failed to update ${table}`, { duration: 3000 });
       return false;
     }
   };
@@ -316,15 +387,14 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         // Update local state
         setData(prevData => prevData.filter(item => (item as Record<string, unknown>).id !== id));
 
-        toast.info('You are offline', {
-          description: 'This deletion will be synced when you reconnect.',
-        });
+        // Log offline status instead of showing toast
+        console.log(`[useOfflineData] Item deleted while offline. Will be synced when reconnected.`);
       }
 
       return true;
     } catch (err) {
       console.error(`Error deleting ${table}:`, err);
-      toast.error(`Failed to delete ${table}`);
+      toast.error(`Failed to delete ${table}`, { duration: 3000 });
       return false;
     }
   };

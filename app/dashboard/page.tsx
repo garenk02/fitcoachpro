@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useMemo } from "react"
 import Link from "next/link"
 import {
   Calendar,
@@ -16,7 +16,8 @@ import {
 import { useAuth } from "@/components/auth-provider"
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
-import { supabase } from "@/lib/supabase"
+import { OfflineFallback } from "@/components/offline-fallback"
+import { useOfflineData } from "@/hooks/use-offline-data"
 import { format, parseISO, startOfDay, endOfDay } from "date-fns"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -61,184 +62,148 @@ interface ProgressEntry {
 }
 
 export default function DashboardPage() {
-  const { user, userId } = useAuth()
+  const { user } = useAuth() // userId is used indirectly through useOfflineData hooks
   const { isOnline } = useOffline()
-  const [todaySessions, setTodaySessions] = useState<Session[]>([])
-  const [recentProgress, setRecentProgress] = useState<ProgressEntry[]>([])
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true)
-  const [isLoadingProgress, setIsLoadingProgress] = useState(true)
-  const [sessionsError, setSessionsError] = useState<string | null>(null)
-  const [progressError, setProgressError] = useState<string | null>(null)
+  const today = useMemo(() => {
+    const now = new Date()
+    return {
+      startOfToday: startOfDay(now).toISOString(),
+      endOfToday: endOfDay(now).toISOString()
+    }
+  }, [])
 
-  // Fetch today's sessions
-  useEffect(() => {
-    const fetchTodaySessions = async () => {
-      if (!userId) return
+  // Use offline data hook for schedules
+  const {
+    data: allSchedules,
+    isLoading: isLoadingSessions,
+    error: sessionsError
+  } = useOfflineData<Session>({
+    table: 'schedules',
+    select: `
+      id,
+      client_id,
+      start_time,
+      end_time,
+      status,
+      place,
+      clients(name)
+    `,
+    orderColumn: 'start_time'
+  })
 
-      setIsLoadingSessions(true)
-      setSessionsError(null)
+  // Filter today's sessions client-side
+  const todaySessions = useMemo(() => {
+    if (!allSchedules) return []
 
-      try {
-        const today = new Date()
-        const startOfToday = startOfDay(today).toISOString()
-        const endOfToday = endOfDay(today).toISOString()
+    return allSchedules.filter(session => {
+      const sessionStart = session.start_time
+      return sessionStart >= today.startOfToday && sessionStart <= today.endOfToday
+    })
+  }, [allSchedules, today])
 
-        const { data, error } = await supabase
-          .from('schedules')
-          .select(`
-            id,
-            client_id,
-            start_time,
-            end_time,
-            status,
-            place,
-            clients(name)
-          `)
-          .eq('trainer_id', userId)
-          .gte('start_time', startOfToday)
-          .lte('start_time', endOfToday)
-          .order('start_time', { ascending: true })
+  // Use offline data hook for clients
+  const {
+    data: clients,
+    isLoading: isLoadingClients
+  } = useOfflineData<{ id: string; name: string }>({
+    table: 'clients',
+    select: 'id, name',
+    orderColumn: 'name'
+  })
 
-        if (error) {
-          console.error("Error fetching today's sessions:", error)
-          setSessionsError("Failed to load today's sessions")
-          return
-        }
+  // Use offline data hook for progress entries
+  const {
+    data: progressEntries,
+    isLoading: isLoadingProgressEntries,
+    error: progressEntriesError
+  } = useOfflineData<{
+    id: string;
+    client_id: string;
+    date: string;
+    weight: number | null;
+    body_fat: number | null;
+    notes: string | null;
+  }>({
+    table: 'progress',
+    select: 'id, client_id, date, weight, body_fat, notes',
+    orderColumn: 'date',
+    orderDirection: 'desc'
+  })
 
-        setTodaySessions(data || [])
-      } catch (error) {
-        console.error("Error fetching today's sessions:", error)
-        setSessionsError("An unexpected error occurred")
-      } finally {
-        setIsLoadingSessions(false)
-      }
+  // Process progress data
+  const recentProgress = useMemo(() => {
+    if (isLoadingClients || isLoadingProgressEntries || !clients || !progressEntries) {
+      return []
     }
 
-    fetchTodaySessions()
-  }, [userId])
+    // Create a map of client IDs to names for quick lookup
+    const clientMap = new Map(clients.map(client => [client.id, client.name]))
 
-  // Fetch recent progress entries
-  useEffect(() => {
-    const fetchRecentProgress = async () => {
-      if (!userId) return
+    // Group progress entries by client
+    const clientProgressMap = new Map<string, typeof progressEntries>()
 
-      setIsLoadingProgress(true)
-      setProgressError(null)
-
-      try {
-        // Define client interface
-        interface Client {
-          id: string;
-          name: string;
-        }
-
-        // First, get all clients
-        const { data: clients, error: clientsError } = await supabase
-          .from('clients')
-          .select('id, name')
-          .eq('trainer_id', userId)
-
-        if (clientsError) {
-          console.error("Error fetching clients:", clientsError)
-          setProgressError("Failed to load client data")
-          return
-        }
-
-        if (!clients || clients.length === 0) {
-          setRecentProgress([])
-          setIsLoadingProgress(false)
-          return
-        }
-
-        // For each client, get their first and most recent progress entry
-        const progressPromises = clients.map(async (client: Client) => {
-          // Get the first entry (starting weight)
-          const { data: firstEntry, error: firstEntryError } = await supabase
-            .from('progress')
-            .select('id, client_id, date, weight')
-            .eq('client_id', client.id)
-            .eq('trainer_id', userId)
-            .order('date', { ascending: true })
-            .limit(1)
-            .maybeSingle()
-
-          if (firstEntryError) {
-            console.error(`Error fetching first progress entry for client ${client.id}:`, firstEntryError)
-            return null
-          }
-
-          // Get the most recent entry
-          const { data: latestEntry, error: latestEntryError } = await supabase
-            .from('progress')
-            .select('id, client_id, date, weight, body_fat, notes')
-            .eq('client_id', client.id)
-            .eq('trainer_id', userId)
-            .order('date', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (latestEntryError) {
-            console.error(`Error fetching latest progress entry for client ${client.id}:`, latestEntryError)
-            return null
-          }
-
-          // If we have both entries and weights, calculate the change
-          if (firstEntry && latestEntry && firstEntry.weight && latestEntry.weight) {
-            const startingWeight = firstEntry.weight
-            const currentWeight = latestEntry.weight
-            const weightChange = currentWeight - startingWeight
-
-            // Calculate progress percentage (for the progress bar)
-            // Use a simple calculation: how much of the goal has been achieved
-            // Assuming a default goal of 10% weight loss or gain
-            const targetChange = startingWeight * (weightChange < 0 ? -0.1 : 0.1)
-            const progressPercentage = Math.min(100, Math.abs(weightChange / targetChange) * 100)
-
-            return {
-              ...latestEntry,
-              client_name: client.name,
-              weight_change: weightChange,
-              starting_weight: startingWeight,
-              current_weight: currentWeight,
-              progress_percentage: progressPercentage
-            }
-          }
-
-          // If we only have the latest entry with weight
-          if (latestEntry && latestEntry.weight) {
-            return {
-              ...latestEntry,
-              client_name: client.name,
-              weight_change: null,
-              starting_weight: latestEntry.weight,
-              current_weight: latestEntry.weight,
-              progress_percentage: 0
-            }
-          }
-
-          return null
-        })
-
-        const progressResults = await Promise.all(progressPromises)
-        const validProgress = progressResults.filter(Boolean) as ProgressEntry[]
-
-        // Sort by most recent date
-        validProgress.sort((a, b) => {
-          return new Date(b.date).getTime() - new Date(a.date).getTime()
-        })
-
-        // Take the top 3
-        setRecentProgress(validProgress.slice(0, 3))
-      } catch (error) {
-        console.error("Error fetching recent progress:", error)
-        setProgressError("An unexpected error occurred")
-      } finally {
-        setIsLoadingProgress(false)
+    progressEntries.forEach(entry => {
+      if (!clientProgressMap.has(entry.client_id)) {
+        clientProgressMap.set(entry.client_id, [])
       }
-    }
+      clientProgressMap.get(entry.client_id)?.push(entry)
+    })
 
-    fetchRecentProgress()
-  }, [userId])
+    // Process each client's progress
+    const processedProgress: ProgressEntry[] = []
+
+    clientProgressMap.forEach((entries, clientId) => {
+      if (entries.length === 0) return
+
+      // Sort entries by date (oldest first for first entry, newest first for latest)
+      const sortedEntries = [...entries].sort((a, b) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      )
+
+      const firstEntry = sortedEntries[0]
+      const latestEntry = sortedEntries[sortedEntries.length - 1]
+
+      if (firstEntry && latestEntry && firstEntry.weight && latestEntry.weight) {
+        const startingWeight = firstEntry.weight
+        const currentWeight = latestEntry.weight
+        const weightChange = currentWeight - startingWeight
+
+        // Calculate progress percentage
+        const targetChange = startingWeight * (weightChange < 0 ? -0.1 : 0.1)
+        const progressPercentage = Math.min(100, Math.abs(weightChange / targetChange) * 100)
+
+        processedProgress.push({
+          ...latestEntry,
+          client_name: clientMap.get(clientId) || 'Unknown Client',
+          weight_change: weightChange,
+          starting_weight: startingWeight,
+          current_weight: currentWeight,
+          progress_percentage: progressPercentage
+        })
+      } else if (latestEntry && latestEntry.weight) {
+        // If we only have one entry with weight
+        processedProgress.push({
+          ...latestEntry,
+          client_name: clientMap.get(clientId) || 'Unknown Client',
+          weight_change: null,
+          starting_weight: latestEntry.weight,
+          current_weight: latestEntry.weight,
+          progress_percentage: 0
+        })
+      }
+    })
+
+    // Sort by most recent date and take top 3
+    return processedProgress
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3)
+  }, [clients, progressEntries, isLoadingClients, isLoadingProgressEntries])
+
+  // Determine if we're loading progress data
+  const isLoadingProgress = isLoadingClients || isLoadingProgressEntries
+
+  // Determine if there's a progress error
+  const progressError = progressEntriesError
 
   // Format time from ISO string to readable format (e.g., "10:00 AM - 11:00 AM")
   const formatSessionTime = (startTime: string, endTime: string) => {
@@ -288,6 +253,14 @@ export default function DashboardPage() {
                       You are currently offline. Some data may not be available.
                     </p>
                   )}
+                </div>
+              ) : !isOnline && (!allSchedules || allSchedules.length === 0) ? (
+                <div className="py-2">
+                  <OfflineFallback
+                    title="No offline schedule data"
+                    description="Your schedule data is not available offline."
+                    onRetry={() => window.location.reload()}
+                  />
                 </div>
               ) : todaySessions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">
@@ -409,6 +382,14 @@ export default function DashboardPage() {
                       You are currently offline. Some data may not be available.
                     </p>
                   )}
+                </div>
+              ) : !isOnline && (!progressEntries || progressEntries.length === 0) ? (
+                <div className="py-2">
+                  <OfflineFallback
+                    title="No offline progress data"
+                    description="Your client progress data is not available offline."
+                    onRetry={() => window.location.reload()}
+                  />
                 </div>
               ) : recentProgress.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">

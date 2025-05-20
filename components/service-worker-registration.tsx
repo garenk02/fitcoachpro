@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { RefreshCw, WifiOff, Wifi } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useOffline, DataChangeEvent } from './offline-provider';
 
 export function ServiceWorkerRegistration() {
@@ -28,33 +28,21 @@ export function ServiceWorkerRegistration() {
           // Set debounce flag to prevent multiple syncs
           setIsSyncDebounced(true);
 
-          toast.info(
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Syncing data with server...</span>
-            </div>
-          );
+          // Log sync instead of showing toast
+          console.log('[ServiceWorker] Syncing data with server...');
 
           // Perform the sync
           syncData().then((changes) => {
             const changeCount = Array.isArray(changes) ? changes.length : 0;
-            toast.success(
-              <div className="flex items-center gap-2">
-                <Wifi className="h-4 w-4" />
-                <span>Data synchronized successfully{changeCount > 0 ? ` (${changeCount} items)` : ''}</span>
-              </div>
-            );
+            // Log success instead of showing toast
+            console.log(`[ServiceWorker] Data synchronized successfully${changeCount > 0 ? ` (${changeCount} items)` : ''}`);
 
             // Store the sync time
             localStorage.setItem('lastSyncTime', Date.now().toString());
           }).catch(error => {
             console.error('Sync error:', error);
-            toast.error(
-              <div className="flex items-center gap-2">
-                <WifiOff className="h-4 w-4" />
-                <span>Failed to sync data. Will retry later.</span>
-              </div>
-            );
+            // Log error instead of showing toast
+            console.log('[ServiceWorker] Failed to sync data. Will retry later.');
           }).finally(() => {
             // Reset debounce flag after a delay
             setTimeout(() => {
@@ -71,12 +59,8 @@ export function ServiceWorkerRegistration() {
 
     // Listen for online events
     const handleOnline = () => {
-      toast.success(
-        <div className="flex items-center gap-2">
-          <Wifi className="h-4 w-4" />
-          <span>You are back online. Syncing changes...</span>
-        </div>
-      );
+      // We'll let the offline-provider handle the toast notification
+      // to avoid duplicate toasts
 
       // Trigger sync when coming back online
       syncData();
@@ -84,12 +68,8 @@ export function ServiceWorkerRegistration() {
 
     // Listen for offline events
     const handleOffline = () => {
-      toast.error(
-        <div className="flex items-center gap-2">
-          <WifiOff className="h-4 w-4" />
-          <span>You are offline. Changes will be saved locally.</span>
-        </div>
-      );
+      // We'll let the offline-provider handle the toast notification
+      // to avoid duplicate toasts
     };
 
     // Listen for data change events

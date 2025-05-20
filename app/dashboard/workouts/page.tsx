@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { Plus, Search, Edit, Trash2, ArrowLeft, User } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
-import { supabase } from "@/lib/supabase"
+import { OfflineFallback } from "@/components/offline-fallback"
+import { useOfflineData } from "@/hooks/use-offline-data"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
@@ -60,80 +62,57 @@ type Client = {
 
 export default function WorkoutsPage() {
   const { userId } = useAuth()
-  const [workouts, setWorkouts] = useState<Workout[]>([])
-  const [filteredWorkouts, setFilteredWorkouts] = useState<Workout[]>([])
-  const [clients, setClients] = useState<Client[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { isOnline } = useOffline()
   const [searchQuery, setSearchQuery] = useState("")
   const [clientFilter, setClientFilter] = useState<string | null>(null)
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch workouts and clients
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userId) return
+  // Use offline data hook for workouts
+  const {
+    data: workouts,
+    isLoading: isLoadingWorkouts,
+    // Omit error from destructuring
+    deleteItem: deleteWorkout
+  } = useOfflineData<WorkoutData>({
+    table: 'workouts',
+    select: `
+      id,
+      trainer_id,
+      client_id,
+      title,
+      exercises,
+      created_at,
+      clients(name)
+    `,
+    orderColumn: 'created_at',
+    orderDirection: 'desc'
+  })
 
-      setIsLoading(true)
-      try {
-        // Fetch workouts
-        const { data: workoutsData, error: workoutsError } = await supabase
-          .from("workouts")
-          .select(`
-            id,
-            trainer_id,
-            client_id,
-            title,
-            exercises,
-            created_at,
-            clients(name)
-          `)
-          .eq("trainer_id", userId)
-          .order("created_at", { ascending: false })
+  // Use offline data hook for clients
+  const {
+    data: clients,
+    isLoading: isLoadingClients
+  } = useOfflineData<Client>({
+    table: 'clients',
+    select: 'id, name',
+    orderColumn: 'name'
+  })
 
-        if (workoutsError) {
-          console.error("Error fetching workouts:", workoutsError)
-          toast.error("Failed to load workouts")
-          return
-        }
+  // Process workouts data to include client names
+  const processedWorkouts = useMemo(() => {
+    if (!workouts) return []
 
-        // Format workouts data
-        const formattedWorkouts = workoutsData.map((workout: WorkoutData) => ({
-          ...workout,
-          client_name: workout.clients?.name || null
-        }))
-
-        setWorkouts(formattedWorkouts)
-        setFilteredWorkouts(formattedWorkouts)
-
-        // Fetch clients for filter dropdown
-        const { data: clientsData, error: clientsError } = await supabase
-          .from("clients")
-          .select("id, name")
-          .eq("trainer_id", userId)
-          .order("name")
-
-        if (clientsError) {
-          console.error("Error fetching clients:", clientsError)
-          return
-        }
-
-        setClients(clientsData || [])
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        toast.error("Failed to load data")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [userId])
+    return workouts.map(workout => ({
+      ...workout,
+      client_name: workout.clients?.name || undefined // Use undefined instead of null to match Workout type
+    }))
+  }, [workouts])
 
   // Filter workouts based on search query and client filter
-  useEffect(() => {
-    let filtered = [...workouts]
+  const filteredWorkouts = useMemo(() => {
+    let filtered = [...processedWorkouts]
 
     // Apply search filter
     if (searchQuery) {
@@ -153,8 +132,11 @@ export default function WorkoutsPage() {
       }
     }
 
-    setFilteredWorkouts(filtered)
-  }, [workouts, searchQuery, clientFilter])
+    return filtered
+  }, [processedWorkouts, searchQuery, clientFilter])
+
+  // Determine if we're loading
+  const isLoading = isLoadingWorkouts || isLoadingClients
 
   // Handle workout deletion
   const handleDeleteWorkout = async () => {
@@ -163,22 +145,14 @@ export default function WorkoutsPage() {
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase
-        .from("workouts")
-        .delete()
-        .eq("id", selectedWorkout.id)
-        .eq("trainer_id", userId)
+      const success = await deleteWorkout(selectedWorkout.id)
 
-      if (error) {
-        console.error("Error deleting workout:", error)
-        toast.error("Failed to delete workout")
-        return
+      if (!success) {
+        throw new Error("Failed to delete workout")
       }
 
-      // Remove workout from state
-      setWorkouts(workouts.filter(w => w.id !== selectedWorkout.id))
       toast.success("Workout deleted", {
-        description: `${selectedWorkout.title} has been removed.`,
+        description: `${selectedWorkout.title} has been removed.${!isOnline ? ' Will sync when online.' : ''}`,
       })
     } catch (error) {
       console.error("Error deleting workout:", error)
@@ -271,6 +245,16 @@ export default function WorkoutsPage() {
                     <p className="mt-2 text-sm text-muted-foreground">Loading workouts...</p>
                   </TableCell>
                 </TableRow>
+              ) : !isOnline && (!workouts || workouts.length === 0) ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10">
+                    <OfflineFallback
+                      title="No offline workout data"
+                      description="Your workout plans are not available offline."
+                      onRetry={() => window.location.reload()}
+                    />
+                  </TableCell>
+                </TableRow>
               ) : filteredWorkouts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-10">
@@ -327,7 +311,12 @@ export default function WorkoutsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedWorkout(workout)
+                            // Cast to Workout type to ensure client_name is handled correctly
+                            const workoutWithCorrectTypes = {
+                              ...workout,
+                              client_name: workout.client_name || undefined
+                            };
+                            setSelectedWorkout(workoutWithCorrectTypes as unknown as Workout)
                             setIsDeleteDialogOpen(true)
                           }}
                         >

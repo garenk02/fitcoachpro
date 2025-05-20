@@ -1,19 +1,21 @@
 'use client';
 
 import { useOffline } from './offline-provider';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
+// import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
+// import { Button } from './ui/button';
 import { format } from 'date-fns';
 import { ClientOnly } from './client-only';
 
 export function OfflineStatus() {
-  const { isOnline, isSyncing, lastSyncTime, syncData } = useOffline();
+  // const { isOnline, isSyncing, lastSyncTime, syncData } = useOffline();
+  const { isOnline, lastSyncTime } = useOffline();
 
-  const handleSync = () => {
-    if (!isOnline || isSyncing) return;
-    syncData();
-  };
+  // const handleSync = () => {
+  //   if (!isOnline || isSyncing) return;
+  //   syncData();
+  // };
 
   return (
     <ClientOnly fallback={
@@ -38,7 +40,7 @@ export function OfflineStatus() {
           <span>{isOnline ? "Online" : "Offline"}</span>
         </div>
 
-        {isOnline && (
+        {/* {isOnline && (
           <Button
             variant="ghost"
             size="sm"
@@ -49,29 +51,11 @@ export function OfflineStatus() {
             <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} />
             {isSyncing ? "Syncing..." : "Sync"}
           </Button>
-        )}
-
-        {!isOnline && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-3 w-3" />
-            Check connection
-          </Button>
-        )}
+        )} */}
 
         {lastSyncTime && (
           <span className="text-muted-foreground whitespace-nowrap">
             Last update: {format(lastSyncTime, 'HH:mm')}
-          </span>
-        )}
-
-        {!isOnline && (
-          <span className="text-amber-600 dark:text-amber-400 whitespace-nowrap">
-            Working with cached data
           </span>
         )}
       </div>

@@ -1,10 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { toast } from 'sonner';
-import { processSyncQueue } from '@/lib/offline-storage';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react';
+import { processSyncQueue, preloadAllTablesData } from '@/lib/offline-storage';
 import { useAuth } from './auth-provider';
-import { WifiOff, Wifi } from 'lucide-react';
 
 // Define the data change event type
 export type DataChangeEvent = {
@@ -54,6 +52,15 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
   const listenersRef = React.useRef<{
     [table: string]: ((event: DataChangeEvent) => void)[];
   }>({});
+
+  // Debounce flags to prevent duplicate toasts
+  const toastDebounceRef = useRef({
+    online: false,
+    offline: false,
+    preload: false,
+    sync: false,
+    lastToastTime: 0
+  });
 
   // We'll use only the ref for listeners to avoid unnecessary re-renders
 
@@ -121,6 +128,14 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       return Promise.reject(new Error('Cannot sync: offline, no user, or already syncing'));
     }
 
+    // Prevent multiple sync operations
+    if (toastDebounceRef.current.sync) {
+      console.log('Skipping sync (already in progress)');
+      return Promise.resolve([]);
+    }
+
+    toastDebounceRef.current.sync = true;
+
     try {
       setIsSyncing(true);
       const changes = await processSyncQueue();
@@ -174,6 +189,11 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       throw error;
     } finally {
       setIsSyncing(false);
+
+      // Reset debounce flag after a delay
+      setTimeout(() => {
+        toastDebounceRef.current.sync = false;
+      }, 5000); // 5 second cooldown
     }
   }, [isOnline, user, isSyncing, notifyDataChange]);
 
@@ -200,49 +220,135 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Preload all tables data for offline use
+    const preloadOfflineData = async (userId: string) => {
+      if (!userId) return;
+
+      // Prevent multiple preload operations and toasts
+      if (toastDebounceRef.current.preload) {
+        console.log('Skipping preload (already in progress)');
+        return;
+      }
+
+      // Check if we've shown a preload toast recently (within 10 seconds)
+      const now = Date.now();
+      if (now - toastDebounceRef.current.lastToastTime < 10000) {
+        console.log('Skipping preload toast (shown recently)');
+        return;
+      }
+
+      toastDebounceRef.current.preload = true;
+      toastDebounceRef.current.lastToastTime = now;
+
+      try {
+        const results = await preloadAllTablesData(userId);
+
+        // Count total items preloaded
+        const totalItems = Object.values(results).reduce((sum, count) =>
+          count > 0 ? sum + count : sum, 0);
+
+        // Count tables with errors
+        const tablesWithErrors = Object.entries(results)
+          .filter(([, count]) => count === -1)
+          .map(([table]) => table);
+
+        // Log results instead of showing toasts
+        if (totalItems > 0) {
+          console.log(`[OfflineProvider] Offline data ready: ${totalItems} items available for offline use`);
+        } else if (tablesWithErrors.length > 0) {
+          console.log(`[OfflineProvider] Error preparing offline data: Could not prepare some data for offline use`);
+        } else {
+          console.log(`[OfflineProvider] No offline data available: No data found to prepare for offline use`);
+        }
+      } catch (error) {
+        console.error('Error preloading offline data:', error);
+      } finally {
+        // Reset debounce flag after a delay
+        setTimeout(() => {
+          toastDebounceRef.current.preload = false;
+        }, 5000); // 5 second cooldown
+      }
+    };
+
     const handleOnline = async () => {
+      // Prevent multiple online toasts
+      if (toastDebounceRef.current.online) {
+        console.log('Skipping online handler (already processing)');
+        return;
+      }
+
+      // Check if we've shown an online toast recently (within 5 seconds)
+      const now = Date.now();
+      if (now - toastDebounceRef.current.lastToastTime < 5000) {
+        console.log('Skipping online toast (shown recently)');
+        setIsOnline(true); // Still update the state
+        return;
+      }
+
+      toastDebounceRef.current.online = true;
+      toastDebounceRef.current.lastToastTime = now;
+
       // First update UI immediately based on navigator.onLine
       setIsOnline(true);
 
-      // Show a temporary toast
-      const toastId = toast.loading('Checking connection...', {
-        icon: <Wifi className="h-4 w-4 animate-pulse" />,
-      });
+      // Log connection check instead of showing toast
+      console.log('[OfflineProvider] Checking connection...');
 
       // Verify actual connectivity
       const isReallyOnline = await checkRealConnectivity();
 
       if (isReallyOnline) {
-        // Update toast to success
-        toast.success('You are back online', {
-          id: toastId,
-          icon: <Wifi className="h-4 w-4" />,
-          description: 'Syncing your changes...',
-        });
+        // Log status instead of showing toast
+        console.log('[OfflineProvider] You are back online. Syncing your changes...');
 
         // Attempt to sync when coming back online
         try {
           await syncData();
+
+          // After syncing, preload data for offline use if we have a user
+          if (user?.id) {
+            preloadOfflineData(user.id);
+          }
         } catch (error) {
           console.error('Error syncing data after coming online:', error);
         }
       } else {
         // We're not really online despite navigator.onLine saying we are
         setIsOnline(false);
-        toast.error('Still offline', {
-          id: toastId,
-          icon: <WifiOff className="h-4 w-4" />,
-          description: 'Your device reports being online, but cannot reach the server.',
-        });
+        console.log('[OfflineProvider] Still offline. Your device reports being online, but cannot reach the server.');
       }
+
+      // Reset debounce flag after a delay
+      setTimeout(() => {
+        toastDebounceRef.current.online = false;
+      }, 5000); // 5 second cooldown
     };
 
     const handleOffline = () => {
+      // Prevent multiple offline toasts
+      if (toastDebounceRef.current.offline) {
+        console.log('Skipping offline handler (already processing)');
+        return;
+      }
+
+      // Check if we've shown an offline toast recently (within 5 seconds)
+      const now = Date.now();
+      if (now - toastDebounceRef.current.lastToastTime < 5000) {
+        console.log('Skipping offline toast (shown recently)');
+        setIsOnline(false); // Still update the state
+        return;
+      }
+
+      toastDebounceRef.current.offline = true;
+      toastDebounceRef.current.lastToastTime = now;
+
       setIsOnline(false);
-      toast.error('You are offline', {
-        icon: <WifiOff className="h-4 w-4" />,
-        description: 'Changes will be saved locally and synced when you reconnect.',
-      });
+      console.log('[OfflineProvider] You are offline. Changes will be saved locally and synced when you reconnect.');
+
+      // Reset debounce flag after a delay
+      setTimeout(() => {
+        toastDebounceRef.current.offline = false;
+      }, 5000); // 5 second cooldown
     };
 
     // Set initial online status
@@ -253,7 +359,12 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       // Then verify with actual request if we appear to be online
       if (navigator.onLine) {
         checkRealConnectivity().then(isReallyOnline => {
-          if (!isReallyOnline) {
+          if (isReallyOnline) {
+            // If we're really online and have a user, preload data for offline use
+            if (user?.id) {
+              preloadOfflineData(user.id);
+            }
+          } else {
             setIsOnline(false);
           }
         });
@@ -289,7 +400,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('offline', handleOffline);
       if (syncInterval) clearInterval(syncInterval);
     };
-  }, [isOnline, user, syncData]);
+  }, [isOnline, user, syncData, /* preloadOfflineData is defined inside the effect */]);
 
   return (
     <OfflineContext.Provider
