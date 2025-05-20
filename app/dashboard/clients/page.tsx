@@ -14,11 +14,13 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  WifiOff
+  WifiOff,
+  Loader2
 } from "lucide-react";
 import { useOffline } from "@/components/offline-provider";
 import { OfflineStatus } from "@/components/offline-status";
 import { useOfflineData } from "@/hooks/use-offline-data";
+import { ClientOnly } from "@/components/client-only";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -81,12 +83,19 @@ export default function ClientsPage() {
 
   // Update filtered clients when clients data changes
   useEffect(() => {
-    setFilteredClients(clients);
-    setTotalPages(Math.ceil(clients.length / itemsPerPage));
+    if (clients) {
+      setFilteredClients(clients);
+      setTotalPages(Math.ceil(clients.length / itemsPerPage));
+    }
   }, [clients, itemsPerPage]);
 
   // Filter clients based on search query
   useEffect(() => {
+    // Skip if clients array is not yet available
+    if (!clients || clients.length === 0) {
+      return;
+    }
+
     if (searchQuery.trim() === "") {
       setFilteredClients(clients);
       setTotalPages(Math.ceil(clients.length / itemsPerPage));
@@ -193,148 +202,163 @@ export default function ClientsPage() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isLoading ? (
+            <ClientOnly fallback={
+              <TableBody>
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-10">
                     <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">Loading clients...</p>
                   </TableCell>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
-                    <div className="flex flex-col items-center justify-center">
-                      <WifiOff className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">Error loading clients</p>
-                      <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                      {!isOnline && (
-                        <p className="text-sm text-muted-foreground mt-4">
-                          You are currently offline. Some data may not be available.
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : getPaginatedClients().length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
-                    <p className="text-muted-foreground">No clients found</p>
-                    <Button
-                      variant="default"
-                      className="mt-4 bg-accent"
-                      asChild
-                    >
-                      <Link href="/dashboard/clients/new" className="flex items-center gap-1">
-                        <PlusCircle className="h-4 w-4" />
-                        Add Your First Client
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                getPaginatedClients().map((client) => (
-                  <TableRow key={client.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => router.push(`/dashboard/clients/${client.id}`)}>
-                    <TableCell className="font-medium">
-                      <Link href={`/dashboard/clients/${client.id}`} className="hover:underline">
-                        {client.name}
-                      </Link>
+              </TableBody>
+            }>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">Loading clients...</p>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{client.email}</TableCell>
-                    <TableCell>{client.phone || "-"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{client.age || "-"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{client.gender || "-"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
-                            router.push(`/dashboard/clients/${client.id}/edit`);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
-                            setClientToDelete(client);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <div className="flex flex-col items-center justify-center">
+                        <WifiOff className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">Error loading clients</p>
+                        <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                        {!isOnline && (
+                          <p className="text-sm text-muted-foreground mt-4">
+                            You are currently offline. Some data may not be available.
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
+                ) : getPaginatedClients().length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <p className="text-muted-foreground">No clients found</p>
+                      <Button
+                        variant="default"
+                        className="mt-4 bg-accent"
+                        asChild
+                      >
+                        <Link href="/dashboard/clients/new" className="flex items-center gap-1">
+                          <PlusCircle className="h-4 w-4" />
+                          Add Your First Client
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  getPaginatedClients().map((client) => (
+                    <TableRow key={client.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => router.push(`/dashboard/clients/${client.id}`)}>
+                      <TableCell className="font-medium">
+                        <Link href={`/dashboard/clients/${client.id}`} className="hover:underline">
+                          {client.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{client.email}</TableCell>
+                      <TableCell>{client.phone || "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell">{client.age || "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell">{client.gender || "-"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click
+                              router.push(`/dashboard/clients/${client.id}/edit`);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click
+                              setClientToDelete(client);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </ClientOnly>
           </Table>
 
           {/* Pagination */}
-          {!isLoading && filteredClients.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t gap-4">
-              <div className="text-sm text-muted-foreground text-center sm:text-left w-full sm:w-auto">
-                <span className="hidden sm:inline">
-                  Showing {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
-                  {Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
-                </span>
-                <span className="sm:hidden">
-                  {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
-                </span>
-                {filteredClients.length} clients
+          <ClientOnly>
+            {!isLoading && filteredClients.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t gap-4">
+                <div className="text-sm text-muted-foreground text-center sm:text-left w-full sm:w-auto">
+                  <span className="hidden sm:inline">
+                    Showing {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
+                    {Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
+                  </span>
+                  <span className="sm:hidden">
+                    {Math.min(filteredClients.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredClients.length, currentPage * itemsPerPage)} of{" "}
+                  </span>
+                  {filteredClients.length} clients
+                </div>
+                <div className="flex items-center gap-2 justify-center w-full sm:w-auto">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    onClick={() => goToPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm mx-2 min-w-[80px] text-center">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 justify-center w-full sm:w-auto">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9"
-                  onClick={() => goToPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm mx-2 min-w-[80px] text-center">
-                  {currentPage} / {totalPages}
-                </span>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9"
-                  onClick={() => goToPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </ClientOnly>
         </div>
       </main>
 

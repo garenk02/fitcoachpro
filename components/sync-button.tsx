@@ -5,6 +5,12 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { useOffline } from './offline-provider';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SyncButtonProps {
   className?: string;
@@ -12,8 +18,8 @@ interface SyncButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
-export function SyncButton({ 
-  className, 
+export function SyncButton({
+  className,
   variant = 'default',
   size = 'default'
 }: SyncButtonProps) {
@@ -22,10 +28,10 @@ export function SyncButton({
 
   const handleSync = async () => {
     if (!isOnline || isSyncing) return;
-    
+
     setAnimating(true);
     await syncData();
-    
+
     // Keep animation going a bit longer for visual feedback
     setTimeout(() => {
       setAnimating(false);
@@ -33,20 +39,29 @@ export function SyncButton({
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      className={cn("gap-2", className)}
-      onClick={handleSync}
-      disabled={!isOnline || isSyncing}
-    >
-      <RefreshCw 
-        className={cn(
-          "h-4 w-4", 
-          (isSyncing || animating) && "animate-spin"
-        )} 
-      />
-      <span>Sync</span>
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            size={size}
+            className={cn("gap-2", className)}
+            onClick={handleSync}
+            disabled={!isOnline || isSyncing}
+          >
+            <RefreshCw
+              className={cn(
+                "h-4 w-4",
+                (isSyncing || animating) && "animate-spin"
+              )}
+            />
+            <span>Sync</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Refresh data from the server</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

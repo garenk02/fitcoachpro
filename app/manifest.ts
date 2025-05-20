@@ -10,6 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#FFFFFF",
     theme_color: "#2563EB",
     orientation: "portrait",
+    scope: "/",
+    id: "/",
+    categories: ["fitness", "health", "productivity", "business"],
+    dir: "ltr",
+    lang: "en-US",
+    prefer_related_applications: false,
     icons: [
       {
         src: "/icons/icon-192x192.png",
@@ -18,15 +24,55 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable"
       },
       {
+        src: "/icons/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any"
+      },
+      {
         src: "/icons/icon-384x384.png",
         sizes: "384x384",
-        type: "image/png"
+        type: "image/png",
+        purpose: "any"
       },
       {
         src: "/icons/icon-512x512.png",
         sizes: "512x512",
-        type: "image/png"
+        type: "image/png",
+        purpose: "any"
       }
-    ]
+    ],
+    screenshots: [
+      {
+        src: "/screenshots/dashboard.png",
+        sizes: "1280x720",
+        type: "image/png",
+        label: "Dashboard"
+      },
+      {
+        src: "/screenshots/clients.png",
+        sizes: "1280x720",
+        type: "image/png",
+        label: "Client Management"
+      }
+    ],
+    shortcuts: [
+      {
+        name: "Dashboard",
+        url: "/dashboard",
+        description: "View your dashboard"
+      },
+      {
+        name: "Clients",
+        url: "/dashboard/clients",
+        description: "Manage your clients"
+      },
+      {
+        name: "Schedule",
+        url: "/dashboard/schedule",
+        description: "View your schedule"
+      }
+    ],
+    related_applications: []
   };
 }

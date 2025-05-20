@@ -3,6 +3,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 import { supabase } from './supabase';
 import { toast } from 'sonner';
+import { DataChangeEvent } from '@/components/offline-provider';
 
 // Define database name and version
 const DB_NAME = 'fitcoachpro-offline';
@@ -196,23 +197,31 @@ export const addToSyncQueue = async (item: SyncQueueItem): Promise<void> => {
 };
 
 // Process sync queue
-export const processSyncQueue = async (): Promise<void> => {
+export const processSyncQueue = async (): Promise<DataChangeEvent[]> => {
   try {
     const db = await initDB();
     const tx = db.transaction(TABLES.SYNC_QUEUE, 'readonly');
     const store = tx.objectStore(TABLES.SYNC_QUEUE);
     const items = await store.getAll();
 
-    if (items.length === 0) return;
+    if (items.length === 0) return [];
 
     let successCount = 0;
     let failCount = 0;
+    const successfulChanges: DataChangeEvent[] = [];
 
     for (const item of items) {
       try {
         await syncItemWithSupabase(item);
         await removeFromSyncQueue(item.id);
         successCount++;
+
+        // Add to successful changes list
+        successfulChanges.push({
+          table: item.table,
+          operation: item.operation,
+          id: String(item.data.id)
+        });
       } catch (error) {
         console.error('Error syncing item:', error);
         await updateSyncQueueItemRetries(item.id);
@@ -227,8 +236,11 @@ export const processSyncQueue = async (): Promise<void> => {
     if (failCount > 0) {
       toast.error(`Failed to sync ${failCount} items. Will retry later.`);
     }
+
+    return successfulChanges;
   } catch (error) {
     console.error('Error processing sync queue:', error);
+    return [];
   }
 };
 

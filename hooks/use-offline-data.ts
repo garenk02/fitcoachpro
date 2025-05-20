@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/auth-provider';
-import { useOffline } from '@/components/offline-provider';
+import { useOffline, DataChangeEvent } from '@/components/offline-provider';
 import { supabase } from '@/lib/supabase';
 import * as offlineStorage from '@/lib/offline-storage';
 import { toast } from 'sonner';
@@ -22,7 +22,7 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { user, userId } = useAuth();
-  const { isOnline } = useOffline();
+  const { isOnline, notifyDataChange, subscribeToDataChanges } = useOffline();
 
   // Fetch data from Supabase or IndexedDB
   const fetchData = useCallback(async () => {
@@ -113,8 +113,62 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
 
   // Fetch data on mount and when dependencies change
   useEffect(() => {
-    fetchData();
+    // Only fetch data on the client side
+    if (typeof window !== 'undefined') {
+      fetchData();
+    }
   }, [fetchData]);
+
+  // Subscribe to data changes for this table
+  useEffect(() => {
+    // Skip subscription during server-side rendering
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Create a stable callback function that won't change on re-renders
+    const handleDataChange = (event: DataChangeEvent) => {
+      console.log(`Data change detected for ${table}:`, event);
+      fetchData();
+    };
+
+    // Subscribe to changes for this specific table
+    let unsubscribe = () => {};
+
+    // Only subscribe if the necessary function is available
+    if (subscribeToDataChanges) {
+      try {
+        unsubscribe = subscribeToDataChanges(table, handleDataChange);
+      } catch (error) {
+        console.error(`Error subscribing to data changes for ${table}:`, error);
+      }
+    }
+
+    // Also listen for global data-changed events from the service worker
+    const handleDataChangedEvent = (event: Event) => {
+      try {
+        const customEvent = event as CustomEvent<DataChangeEvent>;
+        if (customEvent.detail && customEvent.detail.table === table) {
+          console.log(`Service worker notified data change for ${table}:`, customEvent.detail);
+          fetchData();
+        }
+      } catch (error) {
+        console.error('Error handling data-changed event:', error);
+      }
+    };
+
+    window.addEventListener('data-changed', handleDataChangedEvent);
+
+    // Clean up subscriptions
+    return () => {
+      try {
+        unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing from data changes:', error);
+      }
+      window.removeEventListener('data-changed', handleDataChangedEvent);
+    };
+  }, [table, fetchData, subscribeToDataChanges, notifyDataChange]);
 
   // Create a new item
   const createItem = async (item: Partial<T>): Promise<string | null> => {
@@ -140,6 +194,13 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
 
           // Save to IndexedDB
           await offlineStorage.saveItem(table, newData[0], 'INSERT', true);
+
+          // Notify about data change
+          notifyDataChange({
+            table,
+            operation: 'INSERT',
+            id: newData[0].id
+          });
 
           return newData[0].id;
         }
@@ -190,6 +251,13 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
         if (existingItem) {
           await offlineStorage.saveItem(table, { ...existingItem, ...updates }, 'UPDATE', true);
         }
+
+        // Notify about data change
+        notifyDataChange({
+          table,
+          operation: 'UPDATE',
+          id
+        });
       } else {
         // Update in IndexedDB and add to sync queue when offline
         const existingItem = await offlineStorage.getById(table, id);
@@ -234,6 +302,13 @@ export function useOfflineData<T>(options: UseOfflineDataOptions) {
 
         // Delete from IndexedDB
         await offlineStorage.deleteItem(table, id, true);
+
+        // Notify about data change
+        notifyDataChange({
+          table,
+          operation: 'DELETE',
+          id
+        });
       } else {
         // Delete from IndexedDB and add to sync queue when offline
         await offlineStorage.deleteItem(table, id);
