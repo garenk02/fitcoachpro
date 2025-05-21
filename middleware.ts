@@ -58,6 +58,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Redirect if user is authenticated and trying to access the landing page (root path)
+  if (session && url.pathname === '/') {
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
   return res;
 }
 

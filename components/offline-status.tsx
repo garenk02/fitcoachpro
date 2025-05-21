@@ -24,6 +24,11 @@ export function OfflineStatus() {
       </div>
     }>
       <div className="flex items-center gap-3 text-xs py-1">
+        {lastSyncTime && (
+          <span className="text-muted-foreground whitespace-nowrap">
+            Last update: {format(lastSyncTime, 'HH:mm')}
+          </span>
+        )}
         <div
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded-full",
@@ -52,12 +57,6 @@ export function OfflineStatus() {
             {isSyncing ? "Syncing..." : "Sync"}
           </Button>
         )} */}
-
-        {lastSyncTime && (
-          <span className="text-muted-foreground whitespace-nowrap">
-            Last update: {format(lastSyncTime, 'HH:mm')}
-          </span>
-        )}
       </div>
     </ClientOnly>
   );
