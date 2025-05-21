@@ -11,16 +11,16 @@ import {
   Dumbbell,
   MapPin,
   AlertCircle,
-  WifiOff
+  WifiOff,
+  Settings
 } from "lucide-react"
-import { useAuth } from "@/components/auth-provider"
+
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
 import { OfflineFallback } from "@/components/offline-fallback"
 import { useOfflineData } from "@/hooks/use-offline-data"
 import { format, parseISO, startOfDay, endOfDay } from "date-fns"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -62,7 +62,6 @@ interface ProgressEntry {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth() // userId is used indirectly through useOfflineData hooks
   const { isOnline } = useOffline()
   const today = useMemo(() => {
     const now = new Date()
@@ -216,11 +215,12 @@ export default function DashboardPage() {
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
         <h1 className="text-lg font-bold font-heading">Dashboard</h1>
         <div className="flex items-center gap-4">
-          <Avatar className="bg-primary text-primary-foreground">
-            <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase() || <User className="h-5 w-5" />}
-            </AvatarFallback>
-          </Avatar>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/settings">
+              <Settings className="h-5 w-5" />
+              <span className="sr-only">Settings</span>
+            </Link>
+          </Button>
         </div>
       </header>
 

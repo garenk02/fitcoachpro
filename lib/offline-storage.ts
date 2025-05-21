@@ -1,12 +1,12 @@
 'use client';
 
-import { openDB, IDBPDatabase } from 'idb';
+import { openDB, deleteDB, IDBPDatabase } from 'idb';
 import { supabase } from './supabase';
 import { DataChangeEvent } from '@/components/offline-provider';
 
 // Define database name and version
 const DB_NAME = 'fitcoachpro-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 4; // Increment version to force upgrade for invoices table
 
 // Define table names
 export const TABLES = {
@@ -15,6 +15,8 @@ export const TABLES = {
   EXERCISES: 'exercises',
   WORKOUTS: 'workouts',
   PROGRESS: 'progress',
+  PRICING_PACKAGES: 'pricing_packages',
+  INVOICES: 'invoices',
   SYNC_QUEUE: 'sync_queue',
 };
 
@@ -32,7 +34,9 @@ export type SyncQueueItem = {
 export const initDB = async (): Promise<IDBPDatabase> => {
   try {
     const db = await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion, newVersion) {
+        console.log(`[IndexedDB] Upgrading database from version ${oldVersion} to ${newVersion}`);
+
         // Create stores if they don't exist
         if (!db.objectStoreNames.contains(TABLES.CLIENTS)) {
           const clientsStore = db.createObjectStore(TABLES.CLIENTS, { keyPath: 'id' });
@@ -62,6 +66,18 @@ export const initDB = async (): Promise<IDBPDatabase> => {
           progressStore.createIndex('client_id', 'client_id', { unique: false });
         }
 
+        if (!db.objectStoreNames.contains(TABLES.PRICING_PACKAGES)) {
+          const pricingPackagesStore = db.createObjectStore(TABLES.PRICING_PACKAGES, { keyPath: 'id' });
+          pricingPackagesStore.createIndex('trainer_id', 'trainer_id', { unique: false });
+        }
+
+        if (!db.objectStoreNames.contains(TABLES.INVOICES)) {
+          const invoicesStore = db.createObjectStore(TABLES.INVOICES, { keyPath: 'id' });
+          invoicesStore.createIndex('trainer_id', 'trainer_id', { unique: false });
+          invoicesStore.createIndex('client_id', 'client_id', { unique: false });
+          invoicesStore.createIndex('status', 'status', { unique: false });
+        }
+
         if (!db.objectStoreNames.contains(TABLES.SYNC_QUEUE)) {
           db.createObjectStore(TABLES.SYNC_QUEUE, { keyPath: 'id' });
         }
@@ -81,8 +97,48 @@ export const getAll = async (storeName: string, trainerId?: string): Promise<Rec
 
     // Verify the store exists
     if (!db.objectStoreNames.contains(storeName)) {
-      console.warn(`[IndexedDB] Store ${storeName} does not exist, initializing it`);
-      // The store should have been created in initDB, but just in case
+      console.warn(`[IndexedDB] Store ${storeName} does not exist, trying to initialize it`);
+
+      // Try to reinitialize the database to create the missing store
+      try {
+        // Close the current database connection
+        db.close();
+
+        // Reopen with a higher version to force an upgrade
+        const newVersion = DB_VERSION + 1;
+        console.log(`[IndexedDB] Attempting to upgrade database to version ${newVersion} to create missing store ${storeName}`);
+
+        // This will trigger the upgrade function in initDB
+        await openDB(DB_NAME, newVersion, {
+          upgrade(db) {
+            console.log(`[IndexedDB] Creating missing store ${storeName}`);
+            if (!db.objectStoreNames.contains(storeName)) {
+              const store = db.createObjectStore(storeName, { keyPath: 'id' });
+              if (storeName !== TABLES.SYNC_QUEUE) {
+                store.createIndex('trainer_id', 'trainer_id', { unique: false });
+
+                // Add additional indexes for specific tables
+                if (storeName === TABLES.INVOICES ||
+                    storeName === TABLES.SCHEDULES ||
+                    storeName === TABLES.WORKOUTS ||
+                    storeName === TABLES.PROGRESS) {
+                  store.createIndex('client_id', 'client_id', { unique: false });
+                }
+
+                if (storeName === TABLES.INVOICES) {
+                  store.createIndex('status', 'status', { unique: false });
+                }
+              }
+            }
+          }
+        });
+
+        console.log(`[IndexedDB] Successfully created missing store ${storeName}`);
+      } catch (upgradeError) {
+        console.error(`[IndexedDB] Failed to create missing store ${storeName}:`, upgradeError);
+      }
+
+      // Return empty array since we can't access the store in this transaction
       return [];
     }
 
@@ -169,6 +225,13 @@ export const debugIndexedDB = async (): Promise<Record<string, StoreData>> => {
 export const getById = async (storeName: string, id: string): Promise<Record<string, unknown> | undefined> => {
   try {
     const db = await initDB();
+
+    // Verify the store exists
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`[IndexedDB] Store ${storeName} does not exist when trying to get item by ID`);
+      return undefined;
+    }
+
     const tx = db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
     return await store.get(id);
@@ -225,8 +288,66 @@ export const saveItem = async (
 
     // Verify the store exists
     if (!db.objectStoreNames.contains(storeName)) {
-      console.error(`[IndexedDB] Store ${storeName} does not exist`);
-      throw new Error(`Store ${storeName} does not exist`);
+      console.warn(`[IndexedDB] Store ${storeName} does not exist, trying to initialize it`);
+
+      // Try to reinitialize the database to create the missing store
+      try {
+        // Close the current database connection
+        db.close();
+
+        // Reopen with a higher version to force an upgrade
+        const newVersion = DB_VERSION + 1;
+        console.log(`[IndexedDB] Attempting to upgrade database to version ${newVersion} to create missing store ${storeName}`);
+
+        // This will trigger the upgrade function in initDB
+        const newDb = await openDB(DB_NAME, newVersion, {
+          upgrade(db) {
+            console.log(`[IndexedDB] Creating missing store ${storeName}`);
+            if (!db.objectStoreNames.contains(storeName)) {
+              const store = db.createObjectStore(storeName, { keyPath: 'id' });
+              if (storeName !== TABLES.SYNC_QUEUE) {
+                store.createIndex('trainer_id', 'trainer_id', { unique: false });
+
+                // Add additional indexes for specific tables
+                if (storeName === TABLES.INVOICES ||
+                    storeName === TABLES.SCHEDULES ||
+                    storeName === TABLES.WORKOUTS ||
+                    storeName === TABLES.PROGRESS) {
+                  store.createIndex('client_id', 'client_id', { unique: false });
+                }
+
+                if (storeName === TABLES.INVOICES) {
+                  store.createIndex('status', 'status', { unique: false });
+                }
+              }
+            }
+          }
+        });
+
+        console.log(`[IndexedDB] Successfully created missing store ${storeName}`);
+
+        // Now try to save the item with the new database connection
+        const tx = newDb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        await store.put(itemToStore);
+
+        // Add to sync queue if needed
+        if (!skipQueue) {
+          await addToSyncQueue({
+            id: `${storeName}_${String(itemToStore.id)}_${Date.now()}`,
+            table: storeName,
+            operation,
+            data: itemToStore,
+            timestamp: Date.now(),
+            retries: 0
+          });
+        }
+
+        return String(itemToStore.id);
+      } catch (upgradeError) {
+        console.error(`[IndexedDB] Failed to create missing store ${storeName}:`, upgradeError);
+        throw new Error(`Failed to create store ${storeName}: ${upgradeError}`);
+      }
     }
 
     const tx = db.transaction(storeName, 'readwrite');
@@ -265,6 +386,12 @@ export const deleteItem = async (
 ): Promise<void> => {
   try {
     const db = await initDB();
+
+    // Verify the store exists
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`[IndexedDB] Store ${storeName} does not exist when trying to delete item`);
+      return;
+    }
 
     // Get the item before deleting (for sync queue)
     let item;
@@ -461,6 +588,18 @@ export const updateLocalItemAfterSync = async (
     await store2.add(newData);
   } catch (error) {
     console.error(`Error updating local item after sync in ${storeName}:`, error);
+  }
+};
+
+// Clear the database (for debugging)
+export const clearDatabase = async (): Promise<void> => {
+  try {
+    console.log('[IndexedDB] Attempting to delete database');
+    await deleteDB(DB_NAME);
+    console.log('[IndexedDB] Database deleted successfully');
+  } catch (error) {
+    console.error('[IndexedDB] Error deleting database:', error);
+    throw error;
   }
 };
 

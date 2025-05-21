@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Plus, Search, Edit, Trash2, ArrowLeft } from "lucide-react"
+import { Plus, Search, Edit, Trash2, ArrowLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -100,6 +100,9 @@ export default function ExercisesPage() {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
 
   // Use offline data hook for exercises
   const {
@@ -161,7 +164,25 @@ export default function ExercisesPage() {
     return filtered
   }, [exercises, searchQuery, categoryFilter])
 
-  // No need for the duplicate useEffect since we're using useMemo for filtering
+  // Update total pages when filtered exercises change
+  useEffect(() => {
+    if (filteredExercises) {
+      setTotalPages(Math.max(1, Math.ceil(filteredExercises.length / itemsPerPage)));
+      // Reset to first page when filters change
+      setCurrentPage(1);
+    }
+  }, [filteredExercises, itemsPerPage]);
+
+  // Pagination helpers
+  const getPaginatedExercises = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredExercises.slice(startIndex, endIndex);
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   // Handle add form submission
   const handleAddSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -401,7 +422,7 @@ export default function ExercisesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredExercises.map((exercise) => (
+                getPaginatedExercises().map((exercise) => (
                   <TableRow key={exercise.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <TableCell className="font-medium">{exercise.name}</TableCell>
                     <TableCell>{exercise.category || "-"}</TableCell>
@@ -440,6 +461,67 @@ export default function ExercisesPage() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {!isLoading && filteredExercises.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-4 border-t gap-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left w-full sm:w-auto">
+                <span className="hidden sm:inline">
+                  Showing {Math.min(filteredExercises.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
+                  {Math.min(filteredExercises.length, currentPage * itemsPerPage)} of{" "}
+                </span>
+                <span className="sm:hidden">
+                  {Math.min(filteredExercises.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredExercises.length, currentPage * itemsPerPage)} of{" "}
+                </span>
+                {filteredExercises.length} exercises
+              </div>
+              <div className="flex items-center gap-2 justify-center w-full sm:w-auto">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1}
+                  aria-label="First page"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm mx-2 min-w-[80px] text-center">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Last page"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

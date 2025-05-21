@@ -17,6 +17,9 @@ const CRITICAL_PAGES = [
   '/dashboard/exercises/new',
   '/dashboard/workouts/new',
   '/dashboard/progress',
+  '/dashboard/invoices',
+  '/dashboard/invoices/new',
+  '/dashboard/pricing-packages',
   '/settings'
 ];
 
@@ -26,7 +29,9 @@ const API_ROUTES_TO_CACHE = [
   '/api/schedules',
   '/api/exercises',
   '/api/workouts',
-  '/api/progress'
+  '/api/progress',
+  '/api/invoices',
+  '/api/pricing-packages'
 ];
 
 // Wrap all code in try-catch to prevent service worker crashes

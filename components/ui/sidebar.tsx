@@ -8,9 +8,10 @@ import {
   Users,
   Calendar,
   Dumbbell,
-  Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  Receipt
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -32,23 +33,28 @@ export function Sidebar({ className }: SidebarProps) {
     },
     {
       name: "Clients",
-      href: "/clients",
+      href: "/dashboard/clients",
       icon: Users,
     },
     {
       name: "Schedule",
-      href: "/schedule",
+      href: "/dashboard/schedule",
       icon: Calendar,
     },
     {
       name: "Workouts",
-      href: "/workouts",
+      href: "/dashboard/workouts",
       icon: Dumbbell,
     },
     {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
+      name: "Pricing",
+      href: "/dashboard/pricing-packages",
+      icon: CreditCard,
+    },
+    {
+      name: "Invoices",
+      href: "/dashboard/invoices",
+      icon: Receipt,
     },
   ]
 

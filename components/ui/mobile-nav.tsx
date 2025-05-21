@@ -8,7 +8,8 @@ import {
   Users,
   Calendar,
   Dumbbell,
-  Settings
+  CreditCard,
+  Receipt
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -42,9 +43,14 @@ export function MobileNav({ className }: MobileNavProps) {
       icon: Dumbbell,
     },
     {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
+      name: "Pricing",
+      href: "/dashboard/pricing-packages",
+      icon: CreditCard,
+    },
+    {
+      name: "Invoices",
+      href: "/dashboard/invoices",
+      icon: Receipt,
     },
   ]
 

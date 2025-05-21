@@ -71,7 +71,32 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "Schedule",
         url: "/dashboard/schedule",
         description: "View your schedule"
-      }
+      },
+      {
+        name: "Exercises",
+        url: "/dashboard/exercises",
+        description: "Manage your exercises"
+      },
+      {
+        name: "Workouts",
+        url: "/dashboard/workouts",
+        description: "Manage your workouts"
+      },
+      {
+        name: "Pricing",
+        url: "/dashboard/pricing-packages",
+        description: "Manage your pricing packages"
+      },
+      {
+        name: "Invoices",
+        url: "/dashboard/invoices",
+        description: "Manage your invoices"
+      },
+      {
+        name: "Settings",
+        url: "/settings",
+        description: "Manage your settings"
+      },
     ],
     related_applications: []
   };

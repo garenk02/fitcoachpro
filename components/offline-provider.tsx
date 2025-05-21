@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react';
-import { processSyncQueue, preloadAllTablesData } from '@/lib/offline-storage';
+import { processSyncQueue, preloadAllTablesData, initDB } from '@/lib/offline-storage';
 import { useAuth } from './auth-provider';
 
 // Define the data change event type
@@ -46,6 +46,21 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     if (typeof navigator !== 'undefined') {
       setIsOnline(navigator.onLine);
     }
+  }, []);
+
+  // Initialize IndexedDB
+  useEffect(() => {
+    const initializeDB = async () => {
+      try {
+        console.log('[OfflineProvider] Initializing IndexedDB...');
+        await initDB();
+        console.log('[OfflineProvider] IndexedDB initialized successfully');
+      } catch (error) {
+        console.error('[OfflineProvider] Error initializing IndexedDB:', error);
+      }
+    };
+
+    initializeDB();
   }, []);
 
   // Use a ref to store listeners to avoid re-renders
