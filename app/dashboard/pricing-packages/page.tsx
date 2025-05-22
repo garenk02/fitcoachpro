@@ -7,7 +7,6 @@ import {
   Search,
   Edit,
   Trash2,
-  ArrowLeft,
   CreditCard,
   Loader2,
   ChevronLeft,
@@ -276,15 +275,15 @@ export default function PricingPackagesPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <div className="flex items-center gap-2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
-          <h1 className="text-lg font-bold font-heading">Pricing Packages</h1>
+          <h1 className="text-lg font-bold font-heading">Pricing</h1>
         </div>
         <Button size="sm" className="bg-accent" onClick={() => {
           addForm.reset()

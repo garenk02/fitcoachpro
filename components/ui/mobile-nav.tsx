@@ -9,7 +9,8 @@ import {
   Calendar,
   Dumbbell,
   CreditCard,
-  Receipt
+  Receipt,
+  Weight
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -36,6 +37,11 @@ export function MobileNav({ className }: MobileNavProps) {
       name: "Schedule",
       href: "/dashboard/schedule",
       icon: Calendar,
+    },
+    {
+      name: "Exercises",
+      href: "/dashboard/exercises",
+      icon: Weight,
     },
     {
       name: "Workouts",

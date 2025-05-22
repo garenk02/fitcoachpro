@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, addDays } from "date-fns"
-import { ArrowLeft, Calendar as CalendarIcon, Loader2, Receipt } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, Loader2, Receipt } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
@@ -168,11 +168,11 @@ export default function NewInvoicePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <div className="flex items-center gap-2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/invoices">
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -288,7 +288,11 @@ export default function NewInvoicePage() {
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          // Close the popover after selection
+                          document.body.click(); // This will close the popover
+                        }}
                         disabled={(date) => date < new Date()}
                         initialFocus
                       />

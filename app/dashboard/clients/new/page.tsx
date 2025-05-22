@@ -6,7 +6,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -35,8 +35,17 @@ import { MobileNav } from "@/components/ui/mobile-nav";
 // Define form schema with validation
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  email: z.string().email({ message: "Invalid email address" }),
-  phone: z.string().optional(),
+  phone: z.string()
+    .min(9, { message: "Phone number is too short" })
+    .max(15, { message: "Phone number is too long" })
+    .regex(/^(\+62|62|0)[\d]{8,12}$/, {
+      message: "Must be a valid Indonesian phone number (e.g., +628123456789, 08123456789)"
+    }),
+  email: z.string()
+    .refine(val => val === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: "Invalid email address format"
+    })
+    .optional(),
   age: z.coerce.number().min(1).max(120).optional(),
   gender: z.string().optional(),
   goals: z.string().optional(),
@@ -54,8 +63,8 @@ export default function NewClientPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      email: "",
       phone: "",
+      email: "",
       age: undefined,
       gender: "",
       goals: "",
@@ -79,8 +88,8 @@ export default function NewClientPage() {
         {
           trainer_id: userId,
           name: values.name,
-          email: values.email,
-          phone: values.phone || null,
+          phone: values.phone,
+          email: values.email || null,
           age: values.age || null,
           gender: values.gender || null,
           goals: values.goals || null,
@@ -119,7 +128,7 @@ export default function NewClientPage() {
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/clients">
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -154,12 +163,12 @@ export default function NewClientPage() {
 
               <FormField
                 control={form.control}
-                name="email"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email*</FormLabel>
+                    <FormLabel>Phone*</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="john.doe@example.com" {...field} />
+                      <Input placeholder="+62-811-123-4567" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -168,12 +177,12 @@ export default function NewClientPage() {
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="+1 (555) 123-4567" {...field} />
+                      <Input type="email" placeholder="john.doe@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Plus, Search, Edit, Trash2, ArrowLeft, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Plus, Search, Edit, Trash2, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
@@ -190,11 +190,11 @@ export default function WorkoutsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <div className="flex items-center gap-2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
+        <div className="flex items-center gap-0">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>

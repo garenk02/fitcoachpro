@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   Plus,
   Edit,
   Trash2,
@@ -70,6 +69,9 @@ const formSchema = z.object({
   }),
   weight: z.coerce.number().min(0).optional().nullable(),
   body_fat: z.coerce.number().min(0).max(100).optional().nullable(),
+  muscle_mass: z.coerce.number().min(0).optional().nullable(),
+  water_content: z.coerce.number().min(0).max(100).optional().nullable(),
+  bone_density: z.coerce.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -78,8 +80,8 @@ type Client = {
   id: string;
   trainer_id: string;
   name: string;
-  email: string;
-  phone: string | null;
+  phone: string;
+  email: string | null;
   age: number | null;
   gender: string | null;
   goals: string | null;
@@ -113,6 +115,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
       date: new Date(),
       weight: null,
       body_fat: null,
+      muscle_mass: null,
+      water_content: null,
+      bone_density: null,
       notes: "",
     },
   });
@@ -124,6 +129,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
       date: new Date(),
       weight: null,
       body_fat: null,
+      muscle_mass: null,
+      water_content: null,
+      bone_density: null,
       notes: "",
     },
   });
@@ -214,6 +222,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
           date: format(values.date, "yyyy-MM-dd"),
           weight: values.weight,
           body_fat: values.body_fat,
+          muscle_mass: values.muscle_mass,
+          water_content: values.water_content,
+          bone_density: values.bone_density,
           notes: values.notes,
         },
       ]).select();
@@ -240,6 +251,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
         date: new Date(),
         weight: null,
         body_fat: null,
+        muscle_mass: null,
+        water_content: null,
+        bone_density: null,
         notes: "",
       });
     } catch (error) {
@@ -268,6 +282,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
           date: format(values.date, "yyyy-MM-dd"),
           weight: values.weight,
           body_fat: values.body_fat,
+          muscle_mass: values.muscle_mass,
+          water_content: values.water_content,
+          bone_density: values.bone_density,
           notes: values.notes,
         })
         .eq("id", selectedEntry.id)
@@ -344,6 +361,9 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
       date: new Date(entry.date),
       weight: entry.weight,
       body_fat: entry.body_fat,
+      muscle_mass: entry.muscle_mass,
+      water_content: entry.water_content,
+      bone_density: entry.bone_density,
       notes: entry.notes,
     });
     setIsEditDialogOpen(true);
@@ -370,11 +390,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <div className="flex items-center gap-2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href={`/dashboard/clients/${clientId}`}>
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -566,7 +586,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            // Close the popover after selection
+                            document.body.click(); // This will close the popover
+                          }}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
@@ -584,7 +608,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (lbs)</FormLabel>
+                      <FormLabel>Weight (lbs/kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -608,6 +632,79 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Body Fat %</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="muscle_mass"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Muscle Mass (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="water_content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Water Content (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="bone_density"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bone Density (kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -704,7 +801,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            // Close the popover after selection
+                            document.body.click(); // This will close the popover
+                          }}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
@@ -722,7 +823,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (lbs)</FormLabel>
+                      <FormLabel>Weight (lbs/kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -746,6 +847,79 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Body Fat %</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="muscle_mass"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Muscle Mass (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="water_content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Water Content (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          {...field}
+                          value={field.value === null ? "" : field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === "" ? null : parseFloat(e.target.value);
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="bone_density"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bone Density (kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

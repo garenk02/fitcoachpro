@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, parse, addHours } from "date-fns"
-import { ArrowLeft, Calendar as CalendarIcon, Loader2 } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, Loader2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -364,11 +364,11 @@ export default function NewSchedulePage() {
       </Suspense>
 
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-4 md:px-6 z-10">
-        <div className="flex items-center gap-2">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/schedule">
-              <ArrowLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>

@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Receipt
+  Receipt,
+  Weight
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -40,6 +41,11 @@ export function Sidebar({ className }: SidebarProps) {
       name: "Schedule",
       href: "/dashboard/schedule",
       icon: Calendar,
+    },
+    {
+      name: "Exercises",
+      href: "/dashboard/exercises",
+      icon: Weight,
     },
     {
       name: "Workouts",
