@@ -465,7 +465,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                               {format(new Date(entry.date), "MMM d, yyyy")}
                             </TableCell>
                             <TableCell>
-                              {entry.weight ? `${entry.weight} lbs` : "-"}
+                              {entry.weight ? `${entry.weight} kg` : "-"}
                             </TableCell>
                             <TableCell>
                               {entry.body_fat ? `${entry.body_fat}%` : "-"}
@@ -608,7 +608,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (lbs/kg)</FormLabel>
+                      <FormLabel>Weight (kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -823,7 +823,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (lbs/kg)</FormLabel>
+                      <FormLabel>Weight (kg)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

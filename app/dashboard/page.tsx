@@ -418,7 +418,7 @@ export default function DashboardPage() {
                           progress.weight_change < 0 ? "text-secondary" :
                           progress.weight_change > 0 ? "text-accent" : "text-muted-foreground"
                         }`}>
-                          {progress.weight_change > 0 ? "+" : ""}{progress.weight_change.toFixed(1)} lbs
+                          {progress.weight_change > 0 ? "+" : ""}{progress.weight_change.toFixed(1)} kg
                         </span>
                       )}
                     </div>
@@ -432,10 +432,10 @@ export default function DashboardPage() {
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
                       {progress.starting_weight && (
-                        <span>Starting: {progress.starting_weight} lbs</span>
+                        <span>Starting: {progress.starting_weight} kg</span>
                       )}
                       {progress.current_weight && (
-                        <span>Current: {progress.current_weight} lbs</span>
+                        <span>Current: {progress.current_weight} kg</span>
                       )}
                     </div>
                   </div>
