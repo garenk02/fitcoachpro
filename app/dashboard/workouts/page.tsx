@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Plus, Search, Edit, Trash2, User, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Plus, Search, Edit, Trash2, User, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { MobileNav } from "@/components/ui/mobile-nav"
+
 import { Workout, WorkoutExercise } from "@/types/workout"
 import {
   AlertDialog,
@@ -194,13 +194,13 @@ export default function WorkoutsPage() {
         <div className="flex items-center gap-0">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Workout Plans</h1>
         </div>
-        <Button size="sm" className="bg-accent" asChild>
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
           <Link href="/dashboard/workouts/new" className="flex items-center gap-1">
             <Plus className="h-4 w-4" />
             New Workout
@@ -386,7 +386,7 @@ export default function WorkoutsPage() {
                   disabled={currentPage === 1}
                   aria-label="Previous page"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm mx-2 min-w-[80px] text-center">
                   {currentPage} / {totalPages}
@@ -448,9 +448,6 @@ export default function WorkoutsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   )
 }

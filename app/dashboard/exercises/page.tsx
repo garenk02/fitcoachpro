@@ -2,10 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { useRouter } from "next/navigation"
+import { Plus, Search, Edit, Trash2, ArrowLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/auth-provider"
@@ -24,29 +22,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 
 import {
   AlertDialog,
@@ -69,13 +50,6 @@ type Exercise = {
   created_at: string
 }
 
-// Define form schema with validation
-const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  description: z.string().optional(),
-  category: z.string().min(1, { message: "Please select a category" }),
-})
-
 // Exercise categories
 const EXERCISE_CATEGORIES = [
   "Strength",
@@ -92,14 +66,11 @@ const EXERCISE_CATEGORIES = [
 export default function ExercisesPage() {
   const { userId } = useAuth()
   const { isOnline } = useOffline()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 10
@@ -109,33 +80,11 @@ export default function ExercisesPage() {
     data: exercises,
     isLoading,
     // Omit error from destructuring
-    createItem: createExercise,
-    updateItem: updateExercise,
     deleteItem: deleteExercise
   } = useOfflineData<Exercise>({
     table: 'exercises',
     select: '*',
     orderColumn: 'name'
-  })
-
-  // Initialize add form
-  const addForm = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      category: "",
-    },
-  })
-
-  // Initialize edit form
-  const editForm = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      category: "",
-    },
   })
 
   // Filter exercises based on search query and category
@@ -184,93 +133,11 @@ export default function ExercisesPage() {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  // Handle add form submission
-  const handleAddSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!userId) {
-      setError("You must be logged in to add an exercise")
-      return
-    }
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      // Create new exercise using the offline data hook
-      const newExerciseId = await createExercise({
-        trainer_id: userId,
-        name: values.name,
-        description: values.description || null,
-        category: values.category,
-      })
-
-      if (!newExerciseId) {
-        throw new Error("Failed to create exercise")
-      }
-
-      // Show success toast
-      toast.success("Exercise added", {
-        description: `${values.name} has been added to your exercise library.${!isOnline ? ' Will sync when online.' : ''}`,
-        duration: 3000,
-      })
-
-      // Reset form and close dialog
-      addForm.reset()
-      setIsAddDialogOpen(false)
-    } catch (error) {
-      console.error("Error adding exercise:", error)
-      setError("An unexpected error occurred. Please try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle edit form submission
-  const handleEditSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!userId || !selectedExercise) {
-      setError("You must be logged in to edit an exercise")
-      return
-    }
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      // Update exercise using the offline data hook
-      const success = await updateExercise(selectedExercise.id, {
-        name: values.name,
-        description: values.description || null,
-        category: values.category,
-      })
-
-      if (!success) {
-        throw new Error("Failed to update exercise")
-      }
-
-      // Show success toast
-      toast.success("Exercise updated", {
-        description: `${values.name} has been updated.${!isOnline ? ' Will sync when online.' : ''}`,
-        duration: 3000,
-      })
-
-      // Reset form and close dialog
-      editForm.reset()
-      setIsEditDialogOpen(false)
-      setSelectedExercise(null)
-    } catch (error) {
-      console.error("Error updating exercise:", error)
-      setError("An unexpected error occurred. Please try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   // Handle delete
   const handleDelete = async () => {
     if (!userId || !selectedExercise) {
       return
     }
-
-    setIsSubmitting(true)
 
     try {
       // Delete exercise using the offline data hook
@@ -292,20 +159,7 @@ export default function ExercisesPage() {
     } catch (error) {
       console.error("Error deleting exercise:", error)
       toast.error("Failed to delete exercise")
-    } finally {
-      setIsSubmitting(false)
     }
-  }
-
-  // Handle edit button click
-  const handleEditClick = (exercise: Exercise) => {
-    setSelectedExercise(exercise)
-    editForm.reset({
-      name: exercise.name,
-      description: exercise.description || "",
-      category: exercise.category || "",
-    })
-    setIsEditDialogOpen(true)
   }
 
   // Handle delete button click
@@ -321,18 +175,17 @@ export default function ExercisesPage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Exercise Library</h1>
         </div>
-        <Button size="sm" className="bg-accent" onClick={() => {
-          addForm.reset()
-          setIsAddDialogOpen(true)
-        }}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Exercise
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
+          <Link href="/dashboard/exercises/new">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Exercise
+          </Link>
         </Button>
       </header>
 
@@ -381,7 +234,7 @@ export default function ExercisesPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -411,36 +264,39 @@ export default function ExercisesPage() {
                     <Button
                       variant="default"
                       className="mt-4 bg-accent"
-                      onClick={() => {
-                        addForm.reset()
-                        setIsAddDialogOpen(true)
-                      }}
+                      asChild
                     >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add First Exercise
+                      <Link href="/dashboard/exercises/new">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add First Exercise
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>
               ) : (
                 getPaginatedExercises().map((exercise) => (
-                  <TableRow key={exercise.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <TableCell className="font-medium">{exercise.name}</TableCell>
+                  <TableRow key={exercise.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => router.push(`/dashboard/exercises/${exercise.id}/edit`)}>
+                    <TableCell className="font-medium">
+                      <Link href={`/dashboard/exercises/${exercise.id}/edit`} className="hover:underline">
+                        {exercise.name}
+                      </Link>
+                    </TableCell>
                     <TableCell>{exercise.category || "-"}</TableCell>
                     <TableCell className="hidden md:table-cell max-w-[300px] truncate">
                       {exercise.description || "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditClick(exercise);
-                          }}
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
+                          <Link href={`/dashboard/exercises/${exercise.id}/edit`}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Link>
                         </Button>
                         <Button
                           variant="ghost"
@@ -494,7 +350,7 @@ export default function ExercisesPage() {
                   disabled={currentPage === 1}
                   aria-label="Previous page"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm mx-2 min-w-[80px] text-center">
                   {currentPage} / {totalPages}
@@ -525,235 +381,7 @@ export default function ExercisesPage() {
         </div>
       </main>
 
-      {/* Add Exercise Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Exercise</DialogTitle>
-            <DialogDescription>
-              Add a new exercise to your library. Fill out the details below.
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit(handleAddSubmit)} className="space-y-4">
-              <FormField
-                control={addForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Bench Press" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={addForm.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="w-full">
-                        {EXERCISE_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={addForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the exercise, including proper form and technique..."
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <div className="flex w-full justify-between">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setIsAddDialogOpen(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin mr-2">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
-                          >
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                          </svg>
-                        </div>
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Exercise"
-                    )}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
-      {/* Edit Exercise Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Exercise</DialogTitle>
-            <DialogDescription>
-              Update the details of this exercise.
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
-              <FormField
-                control={editForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Bench Press" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="w-full">
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="w-full">
-                        {EXERCISE_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the exercise, including proper form and technique..."
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <div className="flex w-full justify-between">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setIsEditDialogOpen(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin mr-2">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
-                          >
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                          </svg>
-                        </div>
-                        Saving...
-                      </>
-                    ) : (
-                      "Update Exercise"
-                    )}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -767,38 +395,15 @@ export default function ExercisesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
                 handleDelete()
               }}
-              disabled={isSubmitting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin mr-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
-                  </div>
-                  Deleting...
-                </>
-              ) : (
-                "Delete Exercise"
-              )}
+              Delete Exercise
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

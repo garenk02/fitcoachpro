@@ -6,7 +6,7 @@ import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Plus, X, Dumbbell, Save, Search, ChevronLeft } from "lucide-react"
+import { Plus, X, Dumbbell, Save, Search, ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -30,7 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { MobileNav } from "@/components/ui/mobile-nav"
+
 import { Workout, ExerciseData } from "@/types/workout"
 import { cn } from "@/lib/utils"
 import { ClientCombobox } from "@/components/ui/client-combobox"
@@ -257,7 +257,7 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center gap-0">
             <Button variant="ghost" size="icon" asChild>
               <Link href="/dashboard/workouts">
-                <ChevronLeft className="h-5 w-5" />
+                <ArrowLeft className="h-5 w-5" />
                 <span className="sr-only">Back</span>
               </Link>
             </Button>
@@ -274,41 +274,23 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
             </CardContent>
           </Card>
         </main>
-        <MobileNav />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/workouts">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Edit Workout</h1>
         </div>
-        <Button
-          size="sm"
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-1" />
-              Save Changes
-            </>
-          )}
-        </Button>
       </header>
 
       {/* Main Content */}
@@ -551,12 +533,27 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
                 </CardContent>
               </Card>
             </div>
+
+            <Button
+              size="sm"
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  Save Changes
+                </>
+              )}
+            </Button>
           </div>
         )}
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   )
 }

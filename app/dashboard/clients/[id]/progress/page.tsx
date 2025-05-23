@@ -12,7 +12,7 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Loader2,
-  ChevronLeft,
+  ArrowLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight
@@ -59,7 +59,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { MobileNav } from "@/components/ui/mobile-nav";
+
 import { cn } from "@/lib/utils";
 
 // Define form schema with validation
@@ -67,11 +67,11 @@ const formSchema = z.object({
   date: z.date({
     required_error: "Date is required",
   }),
-  weight: z.coerce.number().min(0).optional().nullable(),
-  body_fat: z.coerce.number().min(0).max(100).optional().nullable(),
-  muscle_mass: z.coerce.number().min(0).optional().nullable(),
-  water_content: z.coerce.number().min(0).max(100).optional().nullable(),
-  bone_density: z.coerce.number().min(0).optional().nullable(),
+  weight: z.coerce.number().min(1, {message: "This is required"}),
+  body_fat: z.coerce.number().min(1, {message: "This is required"}),
+  muscle_mass: z.coerce.number().min(1, {message: "This is required"}),
+  water_content: z.coerce.number().min(1, {message: "This is required"}),
+  bone_density: z.coerce.number().min(1, {message: "This is required"}),
   notes: z.string().optional().nullable(),
 });
 
@@ -113,11 +113,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      weight: null,
-      body_fat: null,
-      muscle_mass: null,
-      water_content: null,
-      bone_density: null,
+      weight: 0.0,
+      body_fat: 0.0,
+      muscle_mass: 0.0,
+      water_content: 0.0,
+      bone_density: 0.0,
       notes: "",
     },
   });
@@ -127,11 +127,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      weight: null,
-      body_fat: null,
-      muscle_mass: null,
-      water_content: null,
-      bone_density: null,
+      weight: 0.0,
+      body_fat: 0.0,
+      muscle_mass: 0.0,
+      water_content: 0.0,
+      bone_density: 0.0,
       notes: "",
     },
   });
@@ -249,11 +249,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
       // Reset form
       form.reset({
         date: new Date(),
-        weight: null,
-        body_fat: null,
-        muscle_mass: null,
-        water_content: null,
-        bone_density: null,
+        weight: 0,
+        body_fat: 0,
+        muscle_mass: 0,
+        water_content: 0,
+        bone_density: 0,
         notes: "",
       });
     } catch (error) {
@@ -359,11 +359,11 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
     setSelectedEntry(entry);
     editForm.reset({
       date: new Date(entry.date),
-      weight: entry.weight,
-      body_fat: entry.body_fat,
-      muscle_mass: entry.muscle_mass,
-      water_content: entry.water_content,
-      bone_density: entry.bone_density,
+      weight: entry.weight || 0 ,
+      body_fat: entry.body_fat || 0,
+      muscle_mass: entry.muscle_mass || 0 ,
+      water_content: entry.water_content || 0,
+      bone_density: entry.bone_density || 0,
       notes: entry.notes,
     });
     setIsEditDialogOpen(true);
@@ -394,7 +394,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href={`/dashboard/clients/${clientId}`}>
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -517,7 +517,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm text-muted-foreground">
                       Page {currentPage} of {totalPages}
@@ -612,7 +612,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -635,7 +635,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -660,7 +660,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -683,7 +683,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -708,7 +708,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -742,9 +742,6 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                 )}
               />
               <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsAddDialogOpen(false)} className="float-left">
-                  Cancel
-                </Button>
                 <Button type="submit" disabled={isSubmitting} className="float-right">
                   {isSubmitting ? (
                     <>
@@ -827,7 +824,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -850,7 +847,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -875,7 +872,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -898,7 +895,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -923,7 +920,7 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                       <FormControl>
                         <Input
                           type="number"
-                          step="0.1"
+                          step="1"
                           placeholder="0.0"
                           {...field}
                           value={field.value === null ? "" : field.value}
@@ -957,9 +954,6 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
                 )}
               />
               <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)} className="float-left">
-                  Cancel
-                </Button>
                 <Button type="submit" disabled={isSubmitting} className="float-right">
                   {isSubmitting ? (
                     <>
@@ -995,9 +989,6 @@ export default function ClientProgressPage({ params }: { params: Promise<{ id: s
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

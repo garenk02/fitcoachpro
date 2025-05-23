@@ -9,7 +9,7 @@ import {
   Edit,
   Trash2,
   UserPlus,
-  ChevronLeft,
+  ArrowLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
@@ -40,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MobileNav } from "@/components/ui/mobile-nav";
+
 
 // Define client type
 type Client = {
@@ -153,13 +153,13 @@ export default function ClientsPage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Manage Clients</h1>
         </div>
-        <Button size="sm" className="bg-accent" asChild>
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
           <Link href="/dashboard/clients/new" className="flex items-center gap-1">
             <UserPlus className="h-4 w-4 mr-1" />
             Add Client
@@ -198,7 +198,7 @@ export default function ClientsPage() {
                 <TableHead>Phone</TableHead>
                 <TableHead className="hidden md:table-cell">Age</TableHead>
                 <TableHead className="hidden md:table-cell">Gender</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <ClientOnly fallback={
@@ -267,7 +267,7 @@ export default function ClientsPage() {
                       <TableCell className="hidden md:table-cell">{client.age || "-"}</TableCell>
                       <TableCell className="hidden md:table-cell">{client.gender || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -331,7 +331,7 @@ export default function ClientsPage() {
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm mx-2 min-w-[80px] text-center">
                     {currentPage} / {totalPages}
@@ -381,8 +381,6 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

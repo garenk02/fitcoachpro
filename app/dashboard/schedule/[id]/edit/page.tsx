@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Loader2, Calendar as CalendarIcon, Trash2, ChevronLeft, Users, User } from "lucide-react"
+import { Loader2, Calendar as CalendarIcon, Trash2, ArrowLeft, Users, User } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -508,13 +508,13 @@ export default function EditSchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-1 md:px-6 z-10">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/schedule">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -821,16 +821,8 @@ export default function EditSchedulePage() {
             )}
 
             {/* Form Actions */}
-            <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/dashboard/schedule")}
-                className="float-left"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="float-right">
+            <div className="flex justify-center pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Update Session
               </Button>

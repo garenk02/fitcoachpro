@@ -9,7 +9,7 @@ import {
   Trash2,
   CreditCard,
   Loader2,
-  ChevronLeft,
+  ArrowLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight
@@ -83,7 +83,7 @@ const parseCurrency = (value: string): number => {
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, "Price must be a positive number"),
+  price: z.coerce.number().min(50000, "Price must be a positive number"),
   session_count: z.coerce.number().int().min(1, "Session count must be at least 1"),
   is_subscription: z.boolean(),
 })
@@ -279,13 +279,13 @@ export default function PricingPackagesPage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Pricing</h1>
         </div>
-        <Button size="sm" className="bg-accent" onClick={() => {
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" onClick={() => {
           addForm.reset()
           setIsAddDialogOpen(true)
         }}>
@@ -335,10 +335,10 @@ export default function PricingPackagesPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Sessions</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Price</TableHead>
+                <TableHead className="text-center">Sessions</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <ClientOnly fallback={
@@ -400,9 +400,9 @@ export default function PricingPackagesPage() {
                       <TableCell className="hidden md:table-cell max-w-[300px] truncate">
                         {pkg.description || "-"}
                       </TableCell>
-                      <TableCell>Rp {formatCurrency(pkg.price)}</TableCell>
-                      <TableCell>{pkg.session_count}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">Rp. {formatCurrency(pkg.price)}</TableCell>
+                      <TableCell className="text-center">{pkg.session_count}</TableCell>
+                      <TableCell className="text-center">
                         {pkg.is_subscription ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
                             Subscription
@@ -413,8 +413,8 @@ export default function PricingPackagesPage() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -434,7 +434,7 @@ export default function PricingPackagesPage() {
                               handleDeleteClick(pkg);
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                             <span className="sr-only">Delete</span>
                           </Button>
                         </div>
@@ -478,7 +478,7 @@ export default function PricingPackagesPage() {
                   disabled={currentPage === 1}
                   aria-label="Previous page"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm mx-2 min-w-[80px] text-center">
                   {currentPage} / {totalPages}
@@ -610,15 +610,6 @@ export default function PricingPackagesPage() {
               />
               <DialogFooter>
                 <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setIsAddDialogOpen(false)}
-                  className="float-left"
-                  disabled={isAddingPackage}
-                >
-                  Cancel
-                </Button>
-                <Button
                   type="submit"
                   className="float-right"
                   disabled={isAddingPackage}
@@ -738,15 +729,6 @@ export default function PricingPackagesPage() {
                 )}
               />
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="float-left"
-                  disabled={isEditingPackage}
-                >
-                  Cancel
-                </Button>
                 <Button
                   type="submit"
                   className="float-right"

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, addDays } from "date-fns"
-import { Calendar as CalendarIcon, ChevronLeft, Loader2, Receipt } from "lucide-react"
+import { Calendar as CalendarIcon, ArrowLeft, Loader2, Receipt } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
@@ -33,7 +33,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ClientCombobox } from "@/components/ui/client-combobox"
 import { PricingPackageCombobox } from "@/components/ui/pricing-package-combobox"
-import { MobileNav } from "@/components/ui/mobile-nav"
+
 
 // Define client type
 type Client = {
@@ -172,7 +172,7 @@ export default function NewInvoicePage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/invoices">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -329,9 +329,6 @@ export default function NewInvoicePage() {
           </form>
         </Form>
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Edit, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { use } from "react";
@@ -11,7 +11,7 @@ import { use } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MobileNav } from "@/components/ui/mobile-nav";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Define client type
@@ -90,13 +90,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-1 md:px-6 z-10">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-4 md:px-6 z-10">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/clients">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -104,10 +104,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             Client Details
           </h1>
         </div>
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/dashboard/clients/${clientId}/edit`}>
-            <Edit className="h-5 w-5" />
-            <span className="sr-only">Edit Client</span>
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
+          <Link href={`/dashboard/clients/${clientId}/edit`} className="flex items-center gap-1">
+            <Edit className="h-4 w-4" />
+            Edit Client
           </Link>
         </Button>
       </header>
@@ -180,15 +180,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                   </CardContent>
                 </Card>
-
-                <div className="flex justify-end">
-                  <Button asChild>
-                    <Link href={`/dashboard/clients/${clientId}/edit`} className="flex items-center gap-1">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit Profile
-                    </Link>
-                  </Button>
-                </div>
               </TabsContent>
 
               <TabsContent value="progress" className="space-y-4 mt-6">
@@ -213,9 +204,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
         ) : null}
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

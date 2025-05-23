@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, parse, addHours } from "date-fns"
-import { Calendar as CalendarIcon, ChevronLeft, Loader2, Users, User } from "lucide-react"
+import { Calendar as CalendarIcon, ArrowLeft, Loader2, Users, User } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -417,7 +417,7 @@ export default function NewSchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Suspense boundary for useSearchParams */}
       <Suspense fallback={<div>Loading...</div>}>
         <SearchParamsHandler onParamsReady={handleParamsReady} />
@@ -428,7 +428,7 @@ export default function NewSchedulePage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/schedule">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -799,19 +799,11 @@ export default function NewSchedulePage() {
             )}
 
             {/* Form Actions */}
-            <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/dashboard/schedule")}
-                className="float-left"
-              >
-                Cancel
-              </Button>
+            <div className="flex justify-center pt-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="float-right"
+                className="w-full"
                 onClick={() => {
                   console.log("Submit button clicked");
                   console.log("Form state:", form.getValues());

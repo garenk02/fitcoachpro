@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { format } from "date-fns" // Used in event formatting
-import { Plus, Loader2, ChevronLeft } from "lucide-react"
+import { Plus, Loader2, ArrowLeft } from "lucide-react"
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
@@ -306,13 +306,13 @@ export default function SchedulePage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Schedule</h1>
         </div>
-        <Button size="sm" className="bg-accent" asChild>
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
           <Link href="/dashboard/schedule/new" className="flex items-center gap-1">
             <Plus className="h-4 w-4" />
             New Session

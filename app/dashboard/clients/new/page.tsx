@@ -6,7 +6,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select-advanced";
-import { MobileNav } from "@/components/ui/mobile-nav";
+
 
 // Define form schema with validation
 const formSchema = z.object({
@@ -122,13 +122,13 @@ export default function NewClientPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-1 md:px-6 z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/clients">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -283,32 +283,22 @@ export default function NewClientPage() {
               )}
             />
 
-            <div className="flex justify-between w-full">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/dashboard/clients")}
-                className="float-left"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="float-right">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Client"
-                )}
-              </Button>
-            </div>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  Save Client
+                </>
+              )}
+            </Button>
           </form>
         </Form>
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

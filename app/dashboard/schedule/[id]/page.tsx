@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   Loader2,
   Edit,
-  ChevronLeft,
+  ArrowLeft,
   MapPin,
   Clock,
   User,
@@ -148,7 +148,7 @@ export default function ScheduleDetailPage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard/schedule">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>

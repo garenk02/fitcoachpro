@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, LogOut, Loader2, ChevronLeft } from "lucide-react";
+import { User, LogOut, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { OfflineStatus } from "@/components/offline-status";
 import { supabase } from "@/lib/supabase";
@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
-import { MobileNav } from "@/components/ui/mobile-nav";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,13 +48,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-2 md:px-6 z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <h2 className="text-h2 font-heading mb-6">Account Settings</h2>
+        {/* <h2 className="text-h2 font-heading mb-6">Account Settings</h2> */}
 
         {/* Profile Card */}
         <Card className="mb-6">
@@ -181,9 +181,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   );
 }

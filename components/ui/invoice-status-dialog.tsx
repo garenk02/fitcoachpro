@@ -125,7 +125,7 @@ export function InvoiceStatusDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-muted-foreground">Amount</Label>
-              <p className="font-medium">Rp {formatCurrency(invoice.amount)}</p>
+              <p className="font-medium">Rp. {formatCurrency(invoice.amount)}</p>
             </div>
             <div>
               <Label className="text-muted-foreground">Due Date</Label>

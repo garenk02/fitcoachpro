@@ -13,7 +13,8 @@ import {
   MapPin,
   AlertCircle,
   WifiOff,
-  Settings
+  Settings,
+  Weight
 } from "lucide-react"
 
 import { useOffline } from "@/components/offline-provider"
@@ -33,7 +34,7 @@ import {
   CardTitle
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { MobileNav } from "@/components/ui/mobile-nav"
+
 
 // Define types for sessions
 interface Session {
@@ -373,7 +374,7 @@ export default function DashboardPage() {
               <CardDescription>Common tasks for trainers</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                 <Button
                   className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
                   asChild
@@ -384,7 +385,7 @@ export default function DashboardPage() {
                   </Link>
                 </Button>
                 <Button
-                  className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
+                  className="h-auto py-6 flex flex-col items-center justify-center gap-2"
                   asChild
                 >
                   <Link href="/dashboard/schedule/new">
@@ -393,12 +394,21 @@ export default function DashboardPage() {
                   </Link>
                 </Button>
                 <Button
+                  className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                  asChild
+                >
+                  <Link href="/dashboard/exercises/new">
+                    <Weight className="h-6 w-6" />
+                    <span>Exercise Library</span>
+                  </Link>
+                </Button>
+                <Button
                   className="h-auto py-6 bg-accent hover:bg-accent/90 flex flex-col items-center justify-center gap-2"
                   asChild
                 >
-                  <Link href="/dashboard/exercises">
+                  <Link href="/dashboard/workouts/new">
                     <Dumbbell className="h-6 w-6" />
-                    <span>Exercise Library</span>
+                    <span>Workouts Plan</span>
                   </Link>
                 </Button>
               </div>
@@ -497,9 +507,6 @@ export default function DashboardPage() {
           </Card>
         </div>
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   )
 }

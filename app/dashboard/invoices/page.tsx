@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   Search,
   Calendar,
-  ChevronLeft,
+  ArrowLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
@@ -18,7 +18,7 @@ import { OfflineStatus } from "@/components/offline-status"
 import { OfflineFallback } from "@/components/offline-fallback"
 import { useOfflineData } from "@/hooks/use-offline-data"
 import { ClientOnly } from "@/components/client-only"
-import { MobileNav } from "@/components/ui/mobile-nav"
+
 import { InvoiceStatusDialog } from "@/components/ui/invoice-status-dialog"
 import { Invoice } from "@/types/invoice"
 import { toast } from "sonner"
@@ -199,13 +199,13 @@ export default function InvoicesPage() {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Invoices</h1>
         </div>
-        <Button size="sm" className="bg-accent" asChild>
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
           <Link href="/dashboard/invoices/new" className="flex items-center gap-1">
             <Plus className="h-4 w-4" />
             Generate Invoice
@@ -297,7 +297,7 @@ export default function InvoicesPage() {
                 <TableHead>Client Name</TableHead>
                 <TableHead>Package</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>
+                <TableHead className="text-center">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger className="cursor-help underline decoration-dotted">
@@ -309,7 +309,7 @@ export default function InvoicesPage() {
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead className="text-center">Due Date</TableHead>
                 <TableHead className="hidden md:table-cell">Issued At</TableHead>
               </TableRow>
             </TableHeader>
@@ -381,16 +381,16 @@ export default function InvoicesPage() {
                       <TableCell>
                         {invoice.pricing_packages?.name || "Unknown Package"}
                       </TableCell>
-                      <TableCell>Rp {formatCurrency(invoice.amount)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">Rp. {formatCurrency(invoice.amount)}</TableCell>
+                      <TableCell className="text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(invoice.status, invoice)}`}>
                           {isOverdue(invoice) ? "Overdue" : invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
                       </TableCell>
-                      <TableCell className={isOverdue(invoice) ? "text-accent-red" : ""}>
+                      <TableCell className={isOverdue(invoice) ? "text-center text-accent-red" : "text-center"}>
                         {format(parseISO(invoice.due_date), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="hidden md:table-cell text-center">
                         {invoice.issued_at ? format(parseISO(invoice.issued_at), "MMM d, yyyy") : "-"}
                       </TableCell>
                     </TableRow>
@@ -443,7 +443,7 @@ export default function InvoicesPage() {
                 disabled={currentPage === 1}
                 aria-label="Previous page"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
 
               {/* Page indicator - more compact on mobile */}
@@ -475,9 +475,6 @@ export default function InvoicesPage() {
           </div>
         )}
       </main>
-
-      {/* Bottom Navigation */}
-      <MobileNav />
     </div>
   )
 }

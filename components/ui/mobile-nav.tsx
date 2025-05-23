@@ -30,6 +30,21 @@ export function MobileNav({ className }: MobileNavProps) {
     setShowScrollIndicator(false)
   }, [])
 
+  // Define root paths where mobile nav should be shown
+  const rootPaths = [
+    "/dashboard",
+    "/dashboard/clients",
+    "/dashboard/schedule",
+    "/dashboard/exercises",
+    "/dashboard/workouts",
+    "/dashboard/pricing-packages",
+    "/dashboard/invoices",
+    "/settings"
+  ]
+
+  // Check if current path is a root path where nav should be shown
+  const shouldShowNav = rootPaths.includes(pathname)
+
   // Scroll to active item on mount and when pathname changes
   React.useEffect(() => {
     if (scrollContainerRef.current) {
@@ -104,6 +119,11 @@ export function MobileNav({ className }: MobileNavProps) {
       icon: Settings,
     },
   ]
+
+  // Don't render the navigation if not on a root path
+  if (!shouldShowNav) {
+    return null
+  }
 
   return (
     <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 h-20", className)}>
