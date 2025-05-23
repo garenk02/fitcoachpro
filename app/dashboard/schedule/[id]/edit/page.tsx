@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Loader2, Calendar as CalendarIcon, Trash2, ChevronLeft } from "lucide-react"
+import { Loader2, Calendar as CalendarIcon, Trash2, ChevronLeft, Users, User } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -58,15 +58,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { ClientCombobox } from "@/components/ui/client-combobox"
+import { ScheduleParticipants } from "@/components/schedule-participants"
 
 // Define form schema with validation
 const formSchema = z.object({
   id: z.string().optional(),
-  client_id: z.string({
-    required_error: "Please select a client",
-  }).min(1, { message: "Please select a client" }),
+  is_group_session: z.boolean().default(false),
+  client_id: z.string().optional(),
+  participant_ids: z.array(z.string()).optional(),
   date: z.date({
     required_error: "Please select a date",
   }),
@@ -86,6 +88,7 @@ const formSchema = z.object({
   series_id: z.string().optional(),
   is_exception: z.boolean().default(false),
   update_all: z.boolean().default(false),
+  max_participants: z.number().min(1).max(50).default(10),
 });
 
 interface Client {
@@ -102,7 +105,7 @@ export default function EditSchedulePage() {
   const [isLoadingClients, setIsLoadingClients] = useState(true)
   const [sessionData, setSessionData] = useState<{
     id: string;
-    client_id: string;
+    client_id: string | null;
     start_time: string;
     end_time: string;
     status: string;
@@ -110,6 +113,8 @@ export default function EditSchedulePage() {
     recurring: boolean;
     series_id?: string;
     is_exception?: boolean;
+    is_group_session: boolean;
+    max_participants: number;
   } | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -121,6 +126,7 @@ export default function EditSchedulePage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       client_id: "",
+      participant_ids: [],
       date: new Date(),
       start_time: format(new Date().setMinutes(0), "HH:mm"),
       end_time: format(addHours(new Date().setMinutes(0), 1), "HH:mm"),
@@ -130,6 +136,8 @@ export default function EditSchedulePage() {
       series_id: "",
       is_exception: false,
       update_all: false,
+      is_group_session: false,
+      max_participants: 10,
     },
     mode: "onSubmit", // Validate on submit
     reValidateMode: "onChange", // Re-validate when fields change after submission
@@ -144,7 +152,7 @@ export default function EditSchedulePage() {
       try {
         const { data: session, error: sessionError } = await supabase
           .from("schedules")
-          .select("id, client_id, start_time, end_time, status, place, recurring, series_id, is_exception")
+          .select("id, client_id, start_time, end_time, status, place, recurring, series_id, is_exception, is_group_session, max_participants")
           .eq("id", params.id)
           .single()
 
@@ -157,7 +165,7 @@ export default function EditSchedulePage() {
         setSessionData(session)
         form.reset({
           id: session.id,
-          client_id: session.client_id,
+          client_id: session.client_id || "",
           date: new Date(session.start_time), // Use start_time for date since there's no date column
           start_time: format(new Date(session.start_time), "HH:mm"),
           end_time: format(new Date(session.end_time), "HH:mm"),
@@ -167,6 +175,9 @@ export default function EditSchedulePage() {
           series_id: session.series_id || session.id,
           is_exception: session.is_exception || false,
           update_all: false,
+          is_group_session: session.is_group_session || false,
+          max_participants: session.max_participants || 10,
+          participant_ids: [], // Will be populated separately if needed
         })
       } catch (error) {
         console.error("Error fetching session data:", error)
@@ -288,13 +299,28 @@ export default function EditSchedulePage() {
       return
     }
 
-    // Extra validation for client_id
-    if (!values.client_id || values.client_id.trim() === "") {
-      form.setError("client_id", {
-        type: "manual",
-        message: "Please select a client"
-      });
-      toast.error("Please select a client");
+    // Clear any previous errors
+    form.clearErrors();
+
+    // Validate based on session type
+    let hasErrors = false;
+
+    if (values.is_group_session) {
+      // Group session validation - no client validation needed
+      // We manage participants separately
+    } else {
+      // Individual session validation
+      if (!values.client_id || values.client_id.trim() === "") {
+        form.setError("client_id", {
+          type: "manual",
+          message: "Please select a client"
+        });
+        toast.error("Please select a client");
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
       return;
     }
 
@@ -452,12 +478,14 @@ export default function EditSchedulePage() {
           const { error } = await supabase
             .from("schedules")
             .update({
-              client_id: values.client_id,
+              client_id: values.is_group_session ? null : values.client_id,
               start_time: startDateTime.toISOString(),
               end_time: endDateTime.toISOString(),
               status: values.status,
               place: values.place,
               recurring: values.recurring,
+              is_group_session: values.is_group_session,
+              max_participants: values.is_group_session ? values.max_participants : 1,
             })
             .eq("id", params.id)
 
@@ -508,35 +536,104 @@ export default function EditSchedulePage() {
         <Form {...form}>
           {/* @ts-expect-error Type mismatch between Zod schema and react-hook-form */}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Client Selection */}
+            {/* Session Type Selection */}
             <FormField
               /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
               control={form.control}
-              name="client_id"
+              name="is_group_session"
               render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormLabel>Client</FormLabel>
-                  <FormControl>
-                    <ClientCombobox
-                      clients={clients}
-                      value={field.value}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        // Trigger validation after selection
-                        form.trigger("client_id");
+                <FormItem>
+                  <FormLabel>Session Type</FormLabel>
+                  <div className="flex items-center space-x-4">
+                    <Tabs
+                      value={field.value ? "group" : "individual"}
+                      className="w-full"
+                      onValueChange={(value) => {
+                        field.onChange(value === "group");
+
+                        // Clear any previous errors
+                        form.clearErrors();
                       }}
-                      isLoading={isLoadingClients}
-                      onAddClient={() => router.push("/dashboard/clients/new")}
-                      className={cn(
-                        "w-full",
-                        form.formState.errors.client_id && "border-destructive"
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage />
+                    >
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="individual" className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          <span>Individual</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="group" className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>Group</span>
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  <FormDescription>
+                    {field.value
+                      ? "Group sessions allow multiple clients to attend the same session"
+                      : "Individual sessions are one-on-one with a single client"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
+
+            {/* Client Selection - shown only for individual sessions */}
+            {!form.watch("is_group_session") && (
+              <FormField
+                /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
+                control={form.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>Client</FormLabel>
+                    <FormControl>
+                      <ClientCombobox
+                        clients={clients}
+                        value={field.value || ""}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          // Trigger validation after selection
+                          form.trigger("client_id");
+                        }}
+                        isLoading={isLoadingClients}
+                        onAddClient={() => router.push("/dashboard/clients/new")}
+                        className={cn(
+                          "w-full",
+                          form.formState.errors.client_id && "border-destructive"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Group Session Settings - shown only for group sessions */}
+            {form.watch("is_group_session") && (
+              <FormField
+                /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
+                control={form.control}
+                name="max_participants"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maximum Participants</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={50}
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Maximum number of participants allowed in this session
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Date Selection */}
             <FormField
@@ -708,6 +805,19 @@ export default function EditSchedulePage() {
                   </FormItem>
                 )}
               />
+            )}
+
+            {/* Participant Management - shown only for group sessions */}
+            {form.watch("is_group_session") && sessionData && (
+              <div className="border rounded-md p-4 mt-6">
+                <h3 className="text-lg font-medium mb-4">Manage Participants</h3>
+                <ScheduleParticipants
+                  scheduleId={params.id as string}
+                  clients={clients}
+                  isLoadingClients={isLoadingClients}
+                  maxParticipants={form.watch("max_participants")}
+                />
+              </div>
             )}
 
             {/* Form Actions */}

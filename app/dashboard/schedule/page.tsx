@@ -17,16 +17,18 @@ import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
 import { OfflineFallback } from "@/components/offline-fallback"
 import { useOfflineData } from "@/hooks/use-offline-data"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { getAll as getAllItems, TABLES } from "@/lib/offline-storage"
 
 import "./calendar.css"
 
 // Define the database schedule type
 interface ScheduleData {
   id: string
-  client_id: string
+  client_id: string | null
   start_time: string
   end_time: string
   status: string
@@ -34,6 +36,8 @@ interface ScheduleData {
   recurring: boolean
   series_id?: string
   is_exception?: boolean
+  is_group_session?: boolean
+  max_participants?: number
   clients?: {
     name: string
   }
@@ -47,16 +51,20 @@ type CalendarEvent = {
   start: string
   end: string
   extendedProps: {
-    client_id: string
+    client_id: string | null
     client_name: string
     status: string
     place: string
     recurring?: boolean
     series_id?: string
     is_exception?: boolean
+    is_group_session?: boolean
+    max_participants?: number
+    participant_count?: number
   }
   backgroundColor?: string
   borderColor?: string
+  classNames?: string[]
 }
 
 export default function SchedulePage() {
@@ -85,6 +93,8 @@ export default function SchedulePage() {
       recurring,
       series_id,
       is_exception,
+      is_group_session,
+      max_participants,
       clients(name)
     `,
     orderColumn: 'start_time'
@@ -109,25 +119,111 @@ export default function SchedulePage() {
   }, [])
 
   // Transform schedules data for FullCalendar
+  // Get participant counts for group sessions
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({})
+
+  // Fetch participant counts for group sessions
+  useEffect(() => {
+    const fetchParticipantCounts = async () => {
+      if (!schedules) return
+
+      // Filter group sessions
+      const groupSessions = schedules.filter(s => s.is_group_session)
+      if (groupSessions.length === 0) return
+
+      // Get participant counts for each group session
+      const counts: Record<string, number> = {}
+
+      if (isOnline) {
+        // Online: fetch from Supabase
+        for (const session of groupSessions) {
+          try {
+            // Use the get_schedule_participants function to get participants
+            const { data, error } = await supabase.rpc(
+              'get_schedule_participants',
+              { p_schedule_id: session.id }
+            );
+
+            if (!error && data) {
+              counts[session.id] = data.length;
+            } else {
+              // Fallback to direct query if RPC fails
+              const { data: fallbackData, error: fallbackError } = await supabase
+                .from('schedule_participants')
+                .select('id')
+                .eq('schedule_id', session.id);
+
+              if (!fallbackError && fallbackData) {
+                counts[session.id] = fallbackData.length;
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching participants for session ${session.id}:`, error);
+          }
+        }
+      } else {
+        // Offline: fetch from IndexedDB
+        try {
+          const allParticipants = await getAllItems(TABLES.SCHEDULE_PARTICIPANTS);
+
+          // Group participants by schedule_id
+          for (const participant of allParticipants) {
+            const scheduleId = participant.schedule_id as string;
+            if (scheduleId) {
+              counts[scheduleId] = (counts[scheduleId] || 0) + 1;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching participants from IndexedDB:', error);
+        }
+      }
+
+      setParticipantCounts(counts);
+    };
+
+    fetchParticipantCounts();
+  }, [schedules, isOnline]);
+
   const events: CalendarEvent[] = useMemo(() => {
     if (!schedules) return []
 
     return schedules.map((schedule: ScheduleData) => {
-      // Set color based on status
+      // Set color based on status and session type
       let backgroundColor = "#3b82f6" // blue for default
+      const classNames: string[] = []
+
       if (schedule.status === "completed") {
         backgroundColor = "#10b981" // green
       } else if (schedule.status === "cancelled") {
         backgroundColor = "#ef4444" // red
       } else if (schedule.status === "pending") {
         backgroundColor = "#f59e0b" // amber
+      } else if (schedule.is_group_session) {
+        backgroundColor = "#8b5cf6" // purple for group sessions
+        classNames.push('group-session')
       }
 
-      // Create a title with recurring indicator if needed
-      const clientName = schedule.clients?.name || "Unnamed Client"
-      const title = schedule.recurring
-        ? `${clientName} 🔄` // Add recurring emoji indicator
-        : clientName
+      // Create title based on session type
+      let title = ""
+      if (schedule.is_group_session) {
+        const count = participantCounts[schedule.id] || 0
+        const max = schedule.max_participants || 0
+        title = `Group Session (${count}/${max})`
+        if (schedule.place) {
+          title += ` - ${schedule.place}`
+        }
+        if (schedule.recurring) {
+          title += " 🔄"
+        }
+      } else {
+        const clientName = schedule.clients?.name || "Unnamed Client"
+        title = schedule.recurring
+          ? `${clientName} 🔄` // Add recurring emoji indicator
+          : clientName
+        if (schedule.place) {
+          title += ` - ${schedule.place}`
+        }
+      }
 
       return {
         id: schedule.id,
@@ -141,18 +237,22 @@ export default function SchedulePage() {
           place: schedule.place,
           recurring: schedule.recurring,
           series_id: schedule.series_id,
-          is_exception: schedule.is_exception
+          is_exception: schedule.is_exception,
+          is_group_session: schedule.is_group_session,
+          max_participants: schedule.max_participants,
+          participant_count: participantCounts[schedule.id] || 0
         },
         backgroundColor,
-        borderColor: backgroundColor
+        borderColor: backgroundColor,
+        classNames
       }
     })
-  }, [schedules])
+  }, [schedules, participantCounts])
 
   // Handle event click
   const handleEventClick = (clickInfo: EventClickArg) => {
     const eventId = clickInfo.event.id
-    router.push(`/dashboard/schedule/${eventId}/edit`)
+    router.push(`/dashboard/schedule/${eventId}`)
   }
 
   // Handle date select for creating new event

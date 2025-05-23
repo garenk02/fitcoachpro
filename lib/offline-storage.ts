@@ -6,12 +6,13 @@ import { DataChangeEvent } from '@/components/offline-provider';
 
 // Define database name and version
 const DB_NAME = 'fitcoachpro-offline';
-const DB_VERSION = 4; // Increment version to force upgrade for invoices table
+const DB_VERSION = 5; // Increment version to force upgrade for schedule_participants table
 
 // Define table names
 export const TABLES = {
   CLIENTS: 'clients',
   SCHEDULES: 'schedules',
+  SCHEDULE_PARTICIPANTS: 'schedule_participants',
   EXERCISES: 'exercises',
   WORKOUTS: 'workouts',
   PROGRESS: 'progress',
@@ -47,6 +48,14 @@ export const initDB = async (): Promise<IDBPDatabase> => {
           const schedulesStore = db.createObjectStore(TABLES.SCHEDULES, { keyPath: 'id' });
           schedulesStore.createIndex('trainer_id', 'trainer_id', { unique: false });
           schedulesStore.createIndex('client_id', 'client_id', { unique: false });
+          schedulesStore.createIndex('is_group_session', 'is_group_session', { unique: false });
+        }
+
+        if (!db.objectStoreNames.contains(TABLES.SCHEDULE_PARTICIPANTS)) {
+          const participantsStore = db.createObjectStore(TABLES.SCHEDULE_PARTICIPANTS, { keyPath: 'id' });
+          participantsStore.createIndex('schedule_id', 'schedule_id', { unique: false });
+          participantsStore.createIndex('client_id', 'client_id', { unique: false });
+          participantsStore.createIndex('trainer_id', 'trainer_id', { unique: false });
         }
 
         if (!db.objectStoreNames.contains(TABLES.EXERCISES)) {
@@ -123,6 +132,16 @@ export const getAll = async (storeName: string, trainerId?: string): Promise<Rec
                     storeName === TABLES.WORKOUTS ||
                     storeName === TABLES.PROGRESS) {
                   store.createIndex('client_id', 'client_id', { unique: false });
+                }
+
+                if (storeName === TABLES.SCHEDULES) {
+                  store.createIndex('is_group_session', 'is_group_session', { unique: false });
+                }
+
+                if (storeName === TABLES.SCHEDULE_PARTICIPANTS) {
+                  store.createIndex('schedule_id', 'schedule_id', { unique: false });
+                  store.createIndex('client_id', 'client_id', { unique: false });
+                  store.createIndex('trainer_id', 'trainer_id', { unique: false });
                 }
 
                 if (storeName === TABLES.INVOICES) {
@@ -314,6 +333,16 @@ export const saveItem = async (
                     storeName === TABLES.WORKOUTS ||
                     storeName === TABLES.PROGRESS) {
                   store.createIndex('client_id', 'client_id', { unique: false });
+                }
+
+                if (storeName === TABLES.SCHEDULES) {
+                  store.createIndex('is_group_session', 'is_group_session', { unique: false });
+                }
+
+                if (storeName === TABLES.SCHEDULE_PARTICIPANTS) {
+                  store.createIndex('schedule_id', 'schedule_id', { unique: false });
+                  store.createIndex('client_id', 'client_id', { unique: false });
+                  store.createIndex('trainer_id', 'trainer_id', { unique: false });
                 }
 
                 if (storeName === TABLES.INVOICES) {

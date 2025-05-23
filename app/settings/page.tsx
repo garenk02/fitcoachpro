@@ -50,7 +50,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between px-1 md:px-6 z-10">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center justify-between pr-2 md:px-6 z-10">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/dashboard">
@@ -59,13 +59,6 @@ export default function SettingsPage() {
             </Link>
           </Button>
           <h1 className="text-lg font-bold font-heading">Settings</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Avatar className="bg-primary text-primary-foreground">
-            <AvatarFallback>
-              {user?.email?.charAt(0).toUpperCase() || <User className="h-5 w-5" />}
-            </AvatarFallback>
-          </Avatar>
         </div>
       </header>
 

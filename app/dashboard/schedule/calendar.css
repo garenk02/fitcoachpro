@@ -165,6 +165,16 @@
   opacity: 0.9;
 }
 
+/* Group Session Styling */
+.fc .fc-event.group-session {
+  border-left: 3px solid #8b5cf6; /* Purple border for group sessions */
+}
+
+.fc .fc-event.group-session .fc-event-title:before {
+  content: "👥 ";
+  margin-right: 2px;
+}
+
 .fc .fc-event-title {
   font-weight: 600;
   overflow: hidden;

@@ -8,6 +8,7 @@ import {
   UserPlus,
   ChevronRight,
   User,
+  Users,
   Dumbbell,
   MapPin,
   AlertCircle,
@@ -19,6 +20,7 @@ import { useOffline } from "@/components/offline-provider"
 import { OfflineStatus } from "@/components/offline-status"
 import { OfflineFallback } from "@/components/offline-fallback"
 import { useOfflineData } from "@/hooks/use-offline-data"
+import { useParticipantCount } from "@/hooks/use-participant-count"
 import { format, parseISO, startOfDay, endOfDay } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -36,11 +38,13 @@ import { MobileNav } from "@/components/ui/mobile-nav"
 // Define types for sessions
 interface Session {
   id: string
-  client_id: string
+  client_id: string | null
   start_time: string
   end_time: string
   status: string
   place: string
+  is_group_session: boolean
+  max_participants?: number
   clients?: {
     name: string
   }
@@ -59,6 +63,74 @@ interface ProgressEntry {
   starting_weight: number | null
   current_weight: number | null
   progress_percentage: number
+}
+
+// Format time from ISO string to readable format (e.g., "10:00 AM - 11:00 AM")
+const formatSessionTime = (startTime: string, endTime: string) => {
+  return `${format(parseISO(startTime), "h:mm a")} - ${format(parseISO(endTime), "h:mm a")}`
+}
+
+// Session Item Component
+function SessionItem({ session, isLast }: { session: Session; isLast: boolean }) {
+  // Always call the hook, but only use its values for group sessions
+  const { count: participantCount, isLoading: isLoadingCount } = useParticipantCount({
+    scheduleId: session.id
+  });
+
+  // For individual sessions, we don't need the participant count
+  const displayCount = session.is_group_session ? participantCount : 0;
+  const displayLoading = session.is_group_session ? isLoadingCount : false;
+
+  return (
+    <div
+      className={`flex items-start justify-between ${
+        !isLast ? "border-b border-gray-200 dark:border-gray-700 pb-4 mb-4" : ""
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="bg-primary/10 rounded-md p-2 mt-1">
+          {session.is_group_session ? (
+            <Users className="h-5 w-5 text-primary" />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
+        </div>
+        <div>
+          {session.is_group_session ? (
+            <h3 className="font-medium flex items-center">
+              <span>Group Session</span>
+              {session.max_participants && (
+                <span className="ml-2 text-xs bg-secondary/20 text-secondary px-2 py-0.5 rounded-full">
+                  {displayLoading ? (
+                    "Loading..."
+                  ) : (
+                    `${displayCount}/${session.max_participants}`
+                  )}
+                </span>
+              )}
+            </h3>
+          ) : (
+            <h3 className="font-medium">{session.clients?.name || "Unnamed Client"}</h3>
+          )}
+          <div className="flex items-center text-sm text-muted-foreground mt-1">
+            <Clock className="h-3.5 w-3.5 mr-1" />
+            <span>{formatSessionTime(session.start_time, session.end_time)}</span>
+          </div>
+          {session.place && (
+            <div className="flex items-center text-sm text-muted-foreground mt-1">
+              <MapPin className="h-3.5 w-3.5 mr-1" />
+              <span>{session.place}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <Button size="sm" variant="default" asChild>
+        <Link href={`/dashboard/schedule/${session.id}`}>
+          Details
+        </Link>
+      </Button>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -85,6 +157,8 @@ export default function DashboardPage() {
       end_time,
       status,
       place,
+      is_group_session,
+      max_participants,
       clients(name)
     `,
     orderColumn: 'start_time'
@@ -204,11 +278,6 @@ export default function DashboardPage() {
   // Determine if there's a progress error
   const progressError = progressEntriesError
 
-  // Format time from ISO string to readable format (e.g., "10:00 AM - 11:00 AM")
-  const formatSessionTime = (startTime: string, endTime: string) => {
-    return `${format(parseISO(startTime), "h:mm a")} - ${format(parseISO(endTime), "h:mm a")}`
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
@@ -279,36 +348,11 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 todaySessions.map((session, index) => (
-                  <div
+                  <SessionItem
                     key={session.id}
-                    className={`flex items-start justify-between ${
-                      index < todaySessions.length - 1 ? "border-b border-gray-200 dark:border-gray-700 pb-4" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="bg-primary/10 rounded-md p-2 mt-1">
-                        <Calendar className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{session.clients?.name || "Unnamed Client"}</h3>
-                        <div className="flex items-center text-sm text-muted-foreground mt-1">
-                          <Clock className="h-3.5 w-3.5 mr-1" />
-                          <span>{formatSessionTime(session.start_time, session.end_time)}</span>
-                        </div>
-                        {session.place && (
-                          <div className="flex items-center text-sm text-muted-foreground mt-1">
-                            <MapPin className="h-3.5 w-3.5 mr-1" />
-                            <span>{session.place}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Button size="sm" variant="default" asChild>
-                      <Link href={`/dashboard/schedule/${session.id}/edit`}>
-                        Details
-                      </Link>
-                    </Button>
-                  </div>
+                    session={session}
+                    isLast={index === todaySessions.length - 1}
+                  />
                 ))
               )}
             </CardContent>

@@ -10,7 +10,8 @@ import {
   Dumbbell,
   CreditCard,
   Receipt,
-  Weight
+  Weight,
+  Settings
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -96,6 +97,11 @@ export function MobileNav({ className }: MobileNavProps) {
       name: "Invoices",
       href: "/dashboard/invoices",
       icon: Receipt,
+    },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
     },
   ]
 

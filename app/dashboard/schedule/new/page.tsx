@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, parse, addHours } from "date-fns"
-import { Calendar as CalendarIcon, ChevronLeft, Loader2 } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, Loader2, Users, User } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -52,12 +52,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { ClientCombobox } from "@/components/ui/client-combobox"
+import { MultiClientSelect } from "@/components/ui/multi-client-select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Define form schema with validation
 const formSchema = z.object({
-  client_id: z.string({
-    required_error: "Please select a client",
-  }).min(1, { message: "Please select a client" }),
+  is_group_session: z.boolean().default(false),
+  client_id: z.string().optional(),
+  participant_ids: z.array(z.string()).optional(),
   date: z.date({
     required_error: "Please select a date",
   }),
@@ -76,7 +78,10 @@ const formSchema = z.object({
   recurring: z.boolean().default(false),
   recurrence_rule: z.string().optional(),
   num_occurrences: z.number().min(1).max(52).default(12),
-});
+  max_participants: z.number().min(1).max(50).default(10),
+})
+// Remove the refine validation as we'll handle this manually in the onSubmit function
+;
 
 interface Client {
   id: string
@@ -125,7 +130,9 @@ export default function NewSchedulePage() {
     // @ts-expect-error - Resolver type mismatch with react-hook-form
     resolver: zodResolver(formSchema),
     defaultValues: {
+      is_group_session: false,
       client_id: "",
+      participant_ids: [] as string[],
       date: new Date(),
       start_time: format(new Date().setMinutes(0), "HH:mm"),
       end_time: format(addHours(new Date().setMinutes(0), 1), "HH:mm"),
@@ -134,6 +141,7 @@ export default function NewSchedulePage() {
       recurring: false,
       recurrence_rule: "weekly",
       num_occurrences: 12,
+      max_participants: 10,
     },
     mode: "onSubmit", // Validate on submit
     reValidateMode: "onChange", // Re-validate when fields change after submission
@@ -188,18 +196,42 @@ export default function NewSchedulePage() {
 
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("Form submitted with values:", values);
+
     if (!userId) {
       toast.error("You must be logged in to create a schedule")
       return
     }
 
-    // Extra validation for client_id
-    if (!values.client_id || values.client_id.trim() === "") {
-      form.setError("client_id", {
-        type: "manual",
-        message: "Please select a client"
-      });
-      toast.error("Please select a client");
+    // Clear any previous errors
+    form.clearErrors();
+
+    // Validate based on session type
+    let hasErrors = false;
+
+    if (values.is_group_session) {
+      // Group session validation
+      if (!values.participant_ids || values.participant_ids.length === 0) {
+        form.setError("participant_ids", {
+          type: "manual",
+          message: "Please select at least one participant"
+        });
+        toast.error("Please select at least one participant");
+        hasErrors = true;
+      }
+    } else {
+      // Individual session validation
+      if (!values.client_id || values.client_id.trim() === "") {
+        form.setError("client_id", {
+          type: "manual",
+          message: "Please select a client"
+        });
+        toast.error("Please select a client");
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
       return;
     }
 
@@ -312,7 +344,7 @@ export default function NewSchedulePage() {
         .from("schedules")
         .insert({
           trainer_id: userId,
-          client_id: values.client_id,
+          client_id: values.is_group_session ? null : values.client_id,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           status: values.status,
@@ -320,6 +352,8 @@ export default function NewSchedulePage() {
           recurring: values.recurring,
           recurrence_rule: values.recurring ? values.recurrence_rule : null,
           is_exception: false,
+          is_group_session: values.is_group_session,
+          max_participants: values.is_group_session ? values.max_participants : 1,
         })
         .select()
 
@@ -345,6 +379,32 @@ export default function NewSchedulePage() {
         toast.error("Failed to create schedule")
         setIsSubmitting(false)
         return
+      }
+
+      // If this is a group session, add participants
+      if (values.is_group_session && values.participant_ids && values.participant_ids.length > 0 && newSchedule && newSchedule.length > 0) {
+        const scheduleId = newSchedule[0].id;
+
+        try {
+          // Add each participant
+          for (const clientId of values.participant_ids) {
+            const { error: participantError } = await supabase
+              .rpc('add_participant_to_schedule', {
+                p_schedule_id: scheduleId,
+                p_client_id: clientId,
+                p_trainer_id: userId,
+                p_status: 'confirmed'
+              });
+
+            if (participantError) {
+              console.error(`Error adding participant ${clientId}:`, participantError);
+              // Continue with other participants even if one fails
+            }
+          }
+        } catch (participantError) {
+          console.error("Error adding participants:", participantError);
+          // Continue anyway as the main schedule was created
+        }
       }
 
       toast.success("Schedule created successfully")
@@ -381,35 +441,166 @@ export default function NewSchedulePage() {
         <Form {...form}>
           {/* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Client Selection */}
+            {/* Session Type Selection */}
             <FormField
               /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
               control={form.control}
-              name="client_id"
+              name="is_group_session"
               render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormLabel>Client</FormLabel>
-                  <FormControl>
-                    <ClientCombobox
-                      clients={clients}
-                      isLoading={isLoadingClients}
-                      value={field.value}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        // Trigger validation after selection
-                        form.trigger("client_id");
+                <FormItem>
+                  <FormLabel>Session Type</FormLabel>
+                  <div className="flex items-center space-x-4">
+                    <Tabs
+                      defaultValue={field.value ? "group" : "individual"}
+                      className="w-full"
+                      onValueChange={(value) => {
+                        console.log("Session type changed to:", value);
+                        const isGroup = value === "group";
+                        field.onChange(isGroup);
+                        form.setValue("is_group_session", isGroup);
+
+                        // Clear any previous errors
+                        form.clearErrors();
+
+                        // Reset client selections when switching types
+                        if (isGroup) {
+                          form.setValue("client_id", "");
+                          // Initialize empty array for participants if not already set
+                          const currentParticipants = form.getValues("participant_ids");
+                          if (!currentParticipants || currentParticipants.length === 0) {
+                            form.setValue("participant_ids", []);
+                          }
+                        } else {
+                          // When switching to individual, keep the client_id if it exists
+                          form.setValue("participant_ids", []);
+                        }
                       }}
-                      onAddClient={() => router.push("/dashboard/clients/new")}
-                      className={cn(
-                        "w-full",
-                        form.formState.errors.client_id && "border-destructive"
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage />
+                    >
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="individual" className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          <span>Individual</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="group" className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>Group</span>
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                  <FormDescription>
+                    {field.value
+                      ? "Group sessions allow multiple clients to attend the same session"
+                      : "Individual sessions are one-on-one with a single client"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
+
+            {/* Client Selection - shown only for individual sessions */}
+            {!form.watch("is_group_session") && (
+              <FormField
+                /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
+                control={form.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>Client</FormLabel>
+                    <FormControl>
+                      <ClientCombobox
+                        clients={clients}
+                        isLoading={isLoadingClients}
+                        value={field.value || ""}
+                        onChange={(value) => {
+                          field.onChange(value);
+
+                          // Clear error if a client is selected
+                          if (value && value.trim() !== "") {
+                            form.clearErrors("client_id");
+                          }
+                        }}
+                        onAddClient={() => router.push("/dashboard/clients/new")}
+                        className={cn(
+                          "w-full",
+                          form.formState.errors.client_id && "border-destructive"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Participants Selection - shown only for group sessions */}
+            {form.watch("is_group_session") && (
+              <>
+                <FormField
+                  /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
+                  control={form.control}
+                  name="participant_ids"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormLabel>Participants</FormLabel>
+                      <FormControl>
+                        <MultiClientSelect
+                          clients={clients}
+                          isLoading={isLoadingClients}
+                          selectedClientIds={field.value || []}
+                          onSelect={(value) => {
+                            console.log("Participants selected:", value);
+                            // Only update if the value has changed
+                            if (JSON.stringify(field.value) !== JSON.stringify(value)) {
+                              field.onChange(value);
+                              form.setValue("participant_ids", value);
+
+                              // Clear any error on this field if we now have participants
+                              if (value && value.length > 0) {
+                                form.clearErrors("participant_ids");
+                              }
+                            }
+                          }}
+                          onAddClient={() => router.push("/dashboard/clients/new")}
+                          className={cn(
+                            "w-full",
+                            form.formState.errors.participant_ids && "border-destructive"
+                          )}
+                          placeholder="Select participants..."
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Select the clients who will attend this group session
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  /* @ts-expect-error - Type mismatch between Zod schema and react-hook-form */
+                  control={form.control}
+                  name="max_participants"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Maximum Participants</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={50}
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Maximum number of participants allowed in this session
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             {/* Date Selection */}
             <FormField
@@ -621,6 +812,11 @@ export default function NewSchedulePage() {
                 type="submit"
                 disabled={isSubmitting}
                 className="float-right"
+                onClick={() => {
+                  console.log("Submit button clicked");
+                  console.log("Form state:", form.getValues());
+                  console.log("Form errors:", form.formState.errors);
+                }}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Session
