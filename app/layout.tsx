@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { PWAInstallPromptWrapper } from "@/components/pwa-install-prompt-wrapper";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { AnalyticsWrapper } from "@/components/analytics-wrapper";
+import { DoubleBackExit } from "@/components/double-back-exit";
 
 // Load Inter font (Primary Font - Section 2.1)
 const inter = Inter({
@@ -168,6 +169,7 @@ export default function RootLayout({
               <Toaster />
               <PWAInstallPromptWrapper />
               <ServiceWorkerRegistration />
+              <DoubleBackExit />
             </OfflineProvider>
           </AuthProvider>
         </ThemeProvider>
