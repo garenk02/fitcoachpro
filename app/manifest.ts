@@ -54,6 +54,12 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "1280x720",
         type: "image/png",
         label: "Client Management"
+      },
+      {
+        src: "/screenshots/schedule.png",
+        sizes: "1280x720",
+        type: "image/png",
+        label: "Schedule Management"
       }
     ],
     shortcuts: [

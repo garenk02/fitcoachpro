@@ -28,7 +28,7 @@ const poppins = Poppins({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#2563EB",
+  themeColor: "#1F2A44",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -47,23 +47,23 @@ export const metadata: Metadata = {
     title: "FitCoachPro",
     startupImage: [
       {
-        url: "/icons/apple-splash-2048-2732.png",
+        url: "/icons/apple-touch-icon.png",
         media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
       },
       {
-        url: "/icons/apple-splash-1668-2388.png",
+        url: "/icons/apple-touch-icon.png",
         media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
       },
       {
-        url: "/icons/apple-splash-1536-2048.png",
+        url: "/icons/apple-touch-icon.png",
         media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
       },
       {
-        url: "/icons/apple-splash-1125-2436.png",
+        url: "/icons/apple-touch-icon.png",
         media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
       },
       {
-        url: "/icons/apple-splash-1242-2688.png",
+        url: "/icons/apple-touch-icon.png",
         media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
       }
     ]
@@ -89,7 +89,7 @@ export const metadata: Metadata = {
     siteName: "FitCoachPro",
     images: [
       {
-        url: "/og-image.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: "FitCoachPro - The ultimate platform for personal trainers"
@@ -100,15 +100,16 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FitCoachPro - The ultimate platform for personal trainers",
     description: "The ultimate platform for personal trainers. Everything You Need to Manage Your Training Business",
-    images: ["/og-image.png"]
+    images: ["/logo.png"]
   },
   icons: {
     icon: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/apple-icon-180.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
     shortcut: [
       { url: "/favicon.ico" }
