@@ -21,7 +21,7 @@ export function DoubleBackExit() {
   const handleBackPress = useCallback(() => {
     // If we're on a "root" page like dashboard, trigger the exit behavior
     // Otherwise, let the normal navigation happen
-    const isRootPage = ['/dashboard', '/settings', '/auth/signin', '/auth/signup', '/'].includes(pathname);
+    const isRootPage = ['/dashboard', '/auth/signin', '/auth/signup', '/'].includes(pathname);
 
     if (!isRootPage) {
       // If not on a root page, let the normal back navigation happen
@@ -99,7 +99,7 @@ export function DoubleBackExit() {
     // This is a common pattern for handling back button in SPAs
     const setupHistoryTrap = () => {
       // Only add the history entry if we're on a root page
-      const isRootPage = ['/dashboard', '/settings', '/auth/signin', '/auth/signup', '/'].includes(pathname);
+      const isRootPage = ['/dashboard', '/dashboard/settings', '/auth/signin', '/auth/signup', '/'].includes(pathname);
 
       if (isRootPage) {
         // Add a history entry with a specific state to identify it

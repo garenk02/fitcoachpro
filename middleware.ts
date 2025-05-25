@@ -38,13 +38,8 @@ export async function middleware(req: NextRequest) {
   // Check auth condition based on route
   const url = req.nextUrl.clone();
   const isAuthRoute = url.pathname.startsWith('/auth');
-  const isApiRoute = url.pathname.startsWith('/api');
-  const isProtectedRoute =
-    url.pathname.startsWith('/dashboard') ||
-    url.pathname.startsWith('/clients') ||
-    url.pathname.startsWith('/schedule') ||
-    url.pathname.startsWith('/workouts') ||
-    url.pathname.startsWith('/settings');
+  // const isApiRoute = url.pathname.startsWith('/api');
+  const isProtectedRoute = url.pathname.startsWith('/dashboard');
 
   // Redirect if user is not authenticated and trying to access protected routes
   if (!session && isProtectedRoute) {

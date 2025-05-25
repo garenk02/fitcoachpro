@@ -14,9 +14,6 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -29,14 +26,6 @@ import {
   TableRow
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -45,17 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -68,25 +47,7 @@ import { OfflineStatus } from "@/components/offline-status"
 import { OfflineFallback } from "@/components/offline-fallback"
 import { useOfflineData } from "@/hooks/use-offline-data"
 import { ClientOnly } from "@/components/client-only"
-import { formatCurrency } from "@/lib/utils";
-
-// Parse currency string back to number
-const parseCurrency = (value: string): number => {
-  // Remove all non-digit characters (including thousand separators)
-  const numStr = value.replace(/[^\d]/g, '');
-
-  // Parse as integer and ensure it's not negative
-  return Math.max(0, parseInt(numStr) || 0);
-};
-
-// Define the pricing package schema
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().optional(),
-  price: z.coerce.number().min(50000, "Price must be a positive number"),
-  session_count: z.coerce.number().int().min(1, "Session count must be at least 1"),
-  is_subscription: z.boolean(),
-})
+import { formatCurrency } from "@/lib/utils"
 
 // Define the pricing package type
 type PricingPackage = {
@@ -104,12 +65,8 @@ export default function PricingPackagesPage() {
   const { isOnline } = useOffline()
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [currentPackage, setCurrentPackage] = useState<PricingPackage | null>(null)
-  const [isAddingPackage, setIsAddingPackage] = useState(false)
-  const [isEditingPackage, setIsEditingPackage] = useState(false)
   const [isDeletingPackage, setIsDeletingPackage] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -119,37 +76,11 @@ export default function PricingPackagesPage() {
   const {
     data: pricingPackages,
     isLoading,
-    createItem: createPricingPackage,
-    updateItem: updatePricingPackage,
     deleteItem: deletePricingPackage
   } = useOfflineData<PricingPackage>({
     table: 'pricing_packages',
     select: '*',
     orderColumn: 'name'
-  })
-
-  // Initialize add form
-  const addForm = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: 0,
-      session_count: 1,
-      is_subscription: false,
-    },
-  })
-
-  // Initialize edit form
-  const editForm = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: 0,
-      session_count: 1,
-      is_subscription: false,
-    },
   })
 
   // Filter pricing packages based on search query and type filter
@@ -200,40 +131,7 @@ export default function PricingPackagesPage() {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  // Handle form submission for adding a new pricing package
-  const handleAddSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (isAddingPackage) return
 
-    setIsAddingPackage(true)
-    try {
-      await createPricingPackage(values)
-      toast.success("Pricing package created successfully")
-      setIsAddDialogOpen(false)
-      addForm.reset()
-    } catch (error) {
-      console.error("Error creating pricing package:", error)
-      toast.error("Failed to create pricing package")
-    } finally {
-      setIsAddingPackage(false)
-    }
-  }
-
-  // Handle form submission for editing a pricing package
-  const handleEditSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!currentPackage || isEditingPackage) return
-
-    setIsEditingPackage(true)
-    try {
-      await updatePricingPackage(currentPackage.id, values)
-      toast.success("Pricing package updated successfully")
-      setIsEditDialogOpen(false)
-    } catch (error) {
-      console.error("Error updating pricing package:", error)
-      toast.error("Failed to update pricing package")
-    } finally {
-      setIsEditingPackage(false)
-    }
-  }
 
   // Handle deleting a pricing package
   const handleDelete = async () => {
@@ -255,15 +153,7 @@ export default function PricingPackagesPage() {
 
   // Handle edit button click
   const handleEditClick = (pkg: PricingPackage) => {
-    setCurrentPackage(pkg)
-    editForm.reset({
-      name: pkg.name,
-      description: pkg.description || "",
-      price: pkg.price,
-      session_count: pkg.session_count,
-      is_subscription: pkg.is_subscription,
-    })
-    setIsEditDialogOpen(true)
+    window.location.href = `/dashboard/pricing-packages/${pkg.id}/edit`
   }
 
   // Handle delete button click
@@ -285,12 +175,11 @@ export default function PricingPackagesPage() {
           </Button>
           <h1 className="text-lg font-bold font-heading">Pricing</h1>
         </div>
-        <Button size="sm" className="bg-accent hover:bg-accent-hover" onClick={() => {
-          addForm.reset()
-          setIsAddDialogOpen(true)
-        }}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Package
+        <Button size="sm" className="bg-accent hover:bg-accent-hover" asChild>
+          <Link href="/dashboard/pricing-packages/new">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Package
+          </Link>
         </Button>
       </header>
 
@@ -382,13 +271,12 @@ export default function PricingPackagesPage() {
                         <Button
                           variant="default"
                           className="mt-4 bg-accent"
-                          onClick={() => {
-                            addForm.reset()
-                            setIsAddDialogOpen(true)
-                          }}
+                          asChild
                         >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add Your First Package
+                          <Link href="/dashboard/pricing-packages/new">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Your First Package
+                          </Link>
                         </Button>
                       </div>
                     </TableCell>
@@ -509,245 +397,7 @@ export default function PricingPackagesPage() {
         </div>
       </main>
 
-      {/* Add Pricing Package Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Pricing Package</DialogTitle>
-            <DialogDescription>
-              Create a new pricing package for your clients.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit(handleAddSubmit)} className="space-y-4">
-              <FormField
-                control={addForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Basic Package" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={addForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Includes basic training sessions" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (Rp) *</FormLabel>
-                      <FormControl>
-                        <div>
-                          <Input
-                            type="text"
-                            value={formatCurrency(field.value)}
-                            onChange={(e) => {
-                              const value = parseCurrency(e.target.value);
-                              field.onChange(value);
-                            }}
-                            onBlur={(e) => {
-                              e.target.value = formatCurrency(field.value);
-                              field.onBlur();
-                            }}
-                            placeholder="1000000"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={addForm.control}
-                  name="session_count"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sessions *</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={addForm.control}
-                name="is_subscription"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Subscription</FormLabel>
-                      <FormDescription>
-                        Is this a recurring subscription package?
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button
-                  type="submit"
-                  className="float-right"
-                  disabled={isAddingPackage}
-                >
-                  {isAddingPackage ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
-      {/* Edit Pricing Package Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Pricing Package</DialogTitle>
-            <DialogDescription>
-              Update the details of this pricing package.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
-              <FormField
-                control={editForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Basic Package" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Includes basic training sessions" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={editForm.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (Rp) *</FormLabel>
-                      <FormControl>
-                        <div>
-                          <Input
-                            type="text"
-                            value={formatCurrency(field.value)}
-                            onChange={(e) => {
-                              const value = parseCurrency(e.target.value);
-                              field.onChange(value);
-                            }}
-                            onBlur={(e) => {
-                              e.target.value = formatCurrency(field.value);
-                              field.onBlur();
-                            }}
-                            placeholder="1000000"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="session_count"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sessions *</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={editForm.control}
-                name="is_subscription"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Subscription</FormLabel>
-                      <FormDescription>
-                        Is this a recurring subscription package?
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button
-                  type="submit"
-                  className="float-right"
-                  disabled={isEditingPackage}
-                >
-                  {isEditingPackage ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

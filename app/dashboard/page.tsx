@@ -286,7 +286,7 @@ export default function DashboardPage() {
         <h1 className="text-lg font-bold font-heading">Dashboard</h1>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/settings">
+            <Link href="/dashboard/settings">
               <Settings className="h-5 w-5" />
               <span className="sr-only">Settings</span>
             </Link>

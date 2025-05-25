@@ -94,7 +94,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       {
         name: "Settings",
-        url: "/settings",
+        url: "/dashboard/settings",
         description: "Manage your settings"
       },
     ],

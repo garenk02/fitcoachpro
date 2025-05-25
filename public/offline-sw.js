@@ -42,7 +42,7 @@ const urlsToCache = [
   '/dashboard/schedule',
   '/dashboard/exercises',
   '/dashboard/workouts',
-  '/settings',
+  '/dashboard/settings',
   '/logo.png',
   '/manifest.json'
 ];

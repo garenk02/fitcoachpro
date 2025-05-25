@@ -20,7 +20,8 @@ const CRITICAL_PAGES = [
   '/dashboard/invoices',
   '/dashboard/invoices/new',
   '/dashboard/pricing-packages',
-  '/settings'
+  '/dashboard/pricing-packages/new',
+  '/dashboard/settings'
 ];
 
 // List of API routes to cache for offline use

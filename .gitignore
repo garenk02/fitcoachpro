@@ -27,6 +27,17 @@
 /database
 *.zip
 /scripts
+.gradle
+*.gradle
+*.keystore
+*.aab
+*.apk*
+/apk
+/gradle
+gradle*
+/app/build
+/app/src
+twa-manifest.json
 
 # debug
 npm-debug.log*

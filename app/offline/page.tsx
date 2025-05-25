@@ -61,7 +61,7 @@ export default function OfflinePage() {
               </Link>
             </div>
 
-            <Link href="/settings">
+            <Link href="/dashboard/settings">
               <Button variant="secondary" size="lg" className="w-full flex items-center justify-center">
                 <Settings className="h-5 w-5 mr-2" />
                 Settings

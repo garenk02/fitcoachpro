@@ -39,7 +39,7 @@ export function MobileNav({ className }: MobileNavProps) {
     "/dashboard/workouts",
     "/dashboard/pricing-packages",
     "/dashboard/invoices",
-    "/settings"
+    "/dashboard/settings"
   ]
 
   // Check if current path is a root path where nav should be shown
@@ -115,7 +115,7 @@ export function MobileNav({ className }: MobileNavProps) {
     },
     {
       name: "Settings",
-      href: "/settings",
+      href: "/dashboard/settings",
       icon: Settings,
     },
   ]
